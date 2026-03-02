@@ -1,0 +1,8 @@
+node_modules
+.env
+coverage
+artifacts
+cache
+chainba-frontend/node_modules
+chainba-backend/node_modules
+.DS_Store
