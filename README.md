@@ -10,10 +10,10 @@
 
 | Student | Role | Responsibility |
 |---|---|---|
-| Student 1 | Smart Contracts | Solidity contracts, identity hashing, reputation system |
-| Student 2 | User Interaction & Wallet | Registration, login, wallet creation, backend API |
-| Student 3 | Blockchain Infrastructure | Hardhat, deployment scripts, test suite |
-| Student 4 | User Interface | React frontend, all pages and screens |
+| Student 1 | Smart Contracts | Solidity contracts, identity hashing, reputation system, security hardening |
+| Student 2 | User Interaction & Wallet | Registration, login, wallet auto-creation, backend API, JWT auth |
+| Student 3 | Blockchain Infrastructure | Hardhat setup, deployment scripts, test suite (23 passing) |
+| Student 4 | User Interface | React frontend, all pages, MetaMask integration, session management |
 
 ---
 
@@ -21,7 +21,7 @@
 
 Traditional Zambian Chilimba (rotating savings groups) operate entirely on trust with no contracts, payment records, or fraud protection. Common problems include:
 
-- Organizers disappearing with pooled funds
+- Organisers disappearing with pooled funds
 - Members disputing payment records
 - No verification of a member's past behaviour
 - Early recipients facing no enforced obligation to continue paying
@@ -43,15 +43,15 @@ Traditional Zambian Chilimba (rotating savings groups) operate entirely on trust
 | Layer | Technology |
 |---|---|
 | Smart Contracts | Solidity 0.8.19 |
-| Blockchain Dev | Hardhat (local) |
-| Security Libraries | OpenZeppelin |
-| Blockchain Connection | ethers.js v5 |
+| Blockchain Dev | Hardhat (local Ethereum network) |
+| Security Libraries | OpenZeppelin 4.9.3 |
+| Blockchain Connection | ethers.js v6 (Hardhat) / v5 (React) |
 | Frontend | React.js |
 | Wallet | MetaMask |
 | Backend | Node.js + Express.js |
-| Database | MongoDB |
-| Auth | JWT + bcrypt |
-| File Storage | IPFS (planned) |
+| Database | MongoDB 7.0 |
+| Authentication | JWT + bcrypt |
+| Rate Limiting | express-rate-limit |
 
 ---
 
@@ -60,26 +60,40 @@ Traditional Zambian Chilimba (rotating savings groups) operate entirely on trust
 ```
 chainba/
 ├── contracts/
-│   ├── MemberReputation.sol      # Global reputation scoring
-│   ├── ChilimbaGroup.sol         # Core group logic
-│   └── ChilimbaFactory.sol       # Deploys group contracts
+│   ├── MemberReputation.sol      # Global reputation scoring (Ownable + Pausable)
+│   ├── ChilimbaGroup.sol         # Core group logic (ReentrancyGuard + Pausable)
+│   └── ChilimbaFactory.sol       # Deploys and tracks group contracts
 ├── scripts/
-│   └── deploy.js                 # Deployment script
+│   └── deploy.js                 # Deployment script — saves addresses automatically
 ├── test/
-│   └── (test files go here)      # Student 3
+│   └── ChainBa.test.js           # Full test suite — 23 passing
 ├── chainba-frontend/
 │   └── src/
 │       ├── pages/
-│       │   ├── Landing.js        # Home page
-│       │   ├── Dashboard.js      # User dashboard
-│       │   ├── CreateGroup.js    # Group creation wizard
-│       │   └── GroupView.js      # Group detail + pay
+│       │   ├── Landing.js        # Home page with Register/Login/MetaMask
+│       │   ├── Dashboard.js      # User dashboard with balance + reputation
+│       │   ├── CreateGroup.js    # 3-step group creation wizard
+│       │   ├── GroupView.js      # Group detail + pay contribution
+│       │   ├── Register.js       # User registration (auto wallet creation)
+│       │   ├── Login.js          # Phone + password login
+│       │   ├── Profile.js        # User profile + ETH balance + identity hash
+│       │   └── Admin.js          # Admin panel (password protected)
 │       ├── contracts/
 │       │   ├── config.js         # ABIs + contract addresses
 │       │   └── addresses.json    # Deployed addresses (auto-generated)
-│       └── App.js                # Main app + routing
+│       ├── api.js                # Dynamic base URL config
+│       └── App.js                # Routing + session management + MetaMask listener
 ├── chainba-backend/
-│   └── (backend files go here)   # Student 2
+│   ├── models/
+│   │   └── User.js               # MongoDB schema — fullName, phone, NRC, wallet
+│   ├── routes/
+│   │   ├── auth.js               # POST /api/auth/register, POST /api/auth/login
+│   │   ├── profile.js            # GET /api/profile/me (JWT protected)
+│   │   └── admin.js              # GET /api/admin/users (admin key protected)
+│   ├── middleware/
+│   │   └── auth.js               # JWT verification middleware
+│   ├── index.js                  # Express server entry point
+│   └── .env                      # Environment variables (gitignored)
 ├── hardhat.config.js
 ├── package.json
 └── README.md
@@ -89,20 +103,13 @@ chainba/
 
 ## ⚙️ Prerequisites — Install These First
 
-Before cloning the repo every team member needs:
-
 ### 1. Node.js via NVM
 ```bash
-# Install NVM
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 source ~/.bashrc
-
-# Install Node 22
 nvm install 22
 nvm use 22
 nvm alias default 22
-
-# Verify
 node --version   # must show v22.x.x
 ```
 
@@ -110,32 +117,23 @@ node --version   # must show v22.x.x
 Download from https://www.google.com/chrome
 
 ### 3. MetaMask Browser Extension
-1. Open Chrome
-2. Go to https://metamask.io/download
-3. Click **Add to Chrome**
-4. Click **Create a new wallet**
-5. Set a strong password
-6. **Write down your 12-word seed phrase safely offline**
+1. Open Chrome → https://metamask.io/download
+2. Click **Add to Chrome**
+3. Create a new wallet and set a strong password
+4. **Write down your 12-word seed phrase safely offline**
 
-### 4. VS Code (Recommended)
+### 4. MongoDB
+```bash
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+sudo apt-get update && sudo apt-get install -y mongodb-org
+sudo systemctl start mongod && sudo systemctl enable mongod
+```
+
+### 5. VS Code (Recommended)
 Download from https://code.visualstudio.com
 
-Recommended extensions:
-- Solidity (Juan Blanco)
-- Prettier
-- ES7 React Snippets
-- GitLens
-
-### 5. MongoDB
-```bash
-# Install MongoDB on Ubuntu
-sudo apt-get install -y mongodb
-sudo systemctl start mongodb
-sudo systemctl enable mongodb
-
-# Verify
-mongosh   # should open MongoDB shell
-```
+Recommended extensions: **Solidity** (Juan Blanco), **Prettier**, **ES7 React Snippets**, **GitLens**
 
 ---
 
@@ -144,35 +142,43 @@ mongosh   # should open MongoDB shell
 ### Step 1 — Clone the Repository
 ```bash
 cd ~
-git clone https://github.com/YOURUSERNAME/chainba.git
+git clone https://github.com/b5119/chainba.git
 cd chainba
 ```
 
-### Step 2 — Install Hardhat Dependencies
+### Step 2 — Install All Dependencies
 ```bash
+# Hardhat + contract dependencies
 cd ~/chainba
 npm install --legacy-peer-deps
-```
 
-If you get errors run:
-```bash
-npm install --save-dev "@nomicfoundation/hardhat-ignition@^0.15.16" "@nomicfoundation/ignition-core@^0.15.15" --legacy-peer-deps
-```
-
-### Step 3 — Install Frontend Dependencies
-```bash
+# Frontend dependencies
 cd ~/chainba/chainba-frontend
+npm install
+
+# Backend dependencies
+cd ~/chainba/chainba-backend
 npm install
 ```
 
+### Step 3 — Create Backend Environment File
+```bash
+cat > ~/chainba/chainba-backend/.env << 'EOF'
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/chainba
+JWT_SECRET=chainba_jwt_secret_2026_chain_keepers
+HARDHAT_RPC=http://127.0.0.1:8545
+EOF
+```
+
 ### Step 4 — Start the Local Blockchain
-Open a dedicated terminal for this — **keep it running always:**
+Open a dedicated terminal — **keep it running always:**
 ```bash
 cd ~/chainba
 npx hardhat node
 ```
 
-You should see 20 test accounts each with 10,000 ETH printed.
+You will see 20 test accounts each with 10,000 ETH.
 
 ### Step 5 — Deploy Smart Contracts
 Open a NEW terminal tab:
@@ -181,11 +187,11 @@ cd ~/chainba
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
-You should see:
+Expected output:
 ```
-Deploying with account: 0xf39Fd6e5...
-MemberReputation deployed to: 0x5FbDB2...
-ChilimbaFactory deployed to: 0xe7f172...
+Deploying with account: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+MemberReputation deployed to: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+ChilimbaFactory deployed to: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 ✅ Addresses saved!
 ```
 
@@ -199,47 +205,52 @@ Chain ID:        31337
 Currency Symbol: ETH
 ```
 
-**Import Test Account:**
+**Import Test Account (Account #0 — Leader/Frank):**
 ```
-MetaMask → Click account icon → Add account or hardware wallet
-→ Import account → Private Key
+MetaMask → Click account icon → Import account → Private Key
 → Paste: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-→ Click Import
-→ Switch to Hardhat Local network
-→ You should see 10,000 ETH
+→ Switch to Hardhat Local network → You should see 10,000 ETH
 ```
 
-### Step 7 — Start the React Frontend
-```bash
-cd ~/chainba/chainba-frontend
-npm start
-```
-
-Open Chrome and go to: `http://172.16.141.86:3000`
-(use the IP shown in terminal, NOT localhost)
-
-### Step 8 — Start the Backend Server (when built)
+### Step 7 — Start the Backend
 ```bash
 cd ~/chainba/chainba-backend
 node index.js
 ```
 
+Expected output:
+```
+MongoDB connected
+ChainBa backend running on port 5000
+```
+
+### Step 8 — Start the React Frontend
+```bash
+cd ~/chainba/chainba-frontend
+npm start
+```
+
+Open Chrome at the IP address shown in the terminal on port 3000.
+**Always use the IP address shown, NOT localhost.**
+
 ---
 
 ## ⚠️ IMPORTANT — Every Time You Restart
 
-Every time your computer restarts or the Hardhat node stops you must:
-
 ```bash
 # Terminal 1 — restart blockchain
-cd ~/chainba
-npx hardhat node
+cd ~/chainba && npx hardhat node
 
 # Terminal 2 — redeploy contracts
-cd ~/chainba
-npx hardhat run scripts/deploy.js --network localhost
+cd ~/chainba && npx hardhat run scripts/deploy.js --network localhost
 
-# MetaMask — clear nonce data
+# Terminal 3 — restart backend
+cd ~/chainba/chainba-backend && node index.js
+
+# Terminal 4 — restart frontend
+cd ~/chainba/chainba-frontend && npm start
+
+# MetaMask — clear nonce data (REQUIRED after redeploy)
 MetaMask → ☰ → Settings → Advanced → Clear activity and nonce data → Clear
 
 # Browser — hard refresh
@@ -251,172 +262,227 @@ Ctrl + Shift + R
 ## 📜 Smart Contracts
 
 ### MemberReputation.sol
-Stores permanent reputation scores for every member across all groups.
+Stores permanent on-chain reputation scores for every member across all groups. Inherits OpenZeppelin `Ownable` and `Pausable`.
 
 | Function | Description |
 |---|---|
-| `registerMember(address)` | Creates member with score 100 |
+| `registerMember(address)` | Creates member with starting score of 100 |
 | `recordOnTimePayment(address)` | +10 score |
 | `recordLatePayment(address)` | -3 score |
 | `recordDefault(address)` | -15 score |
 | `recordEjection(address)` | -50 score |
-| `getScore(address)` | Returns current score |
-| `getMember(address)` | Returns full stats |
+| `getScore(address)` | Returns current score (min 0) |
 
 ### ChilimbaGroup.sol
-Core group logic — handles the full lifecycle of a Chilimba group.
+Core group logic — handles the complete lifecycle of a Chilimba group. Protected with OpenZeppelin `ReentrancyGuard` and `Pausable`. Uses checks-effects-interactions pattern for all ETH transfers.
 
 | Function | Description |
 |---|---|
-| `joinGroup(name, nrc, phone)` | Join and pay stake |
-| `payContribution()` | Pay current cycle |
-| `flagDefault(address)` | Leader marks defaulter |
-| `getCurrentBeneficiary()` | Who receives this cycle |
-| `getCycleInfo(cycle)` | Info about a specific cycle |
+| `joinGroup(name, nrc, phone)` | Join group and pay stake — hashes identity with keccak256 |
+| `payContribution()` | Pay current cycle contribution |
+| `flagDefault(address)` | Leader marks a defaulting member after deadline |
+| `getCurrentBeneficiary()` | Returns who receives this cycle's payout |
+| `getCycleInfo(cycle)` | Returns details about a specific cycle |
+| `getMemberCount()` | Returns number of joined members |
+| `hasPaid(address, cycle)` | Returns whether member paid a given cycle |
+| `pause() / unpause()` | Emergency stop — leader only |
 
 ### ChilimbaFactory.sol
-Deploys individual group contracts and tracks all groups.
+Deploys and tracks individual group contracts. Entry point for all group creation.
 
 | Function | Description |
 |---|---|
-| `createGroup(...)` | Deploy new group contract |
-| `getAllGroups()` | List all groups |
-| `getLeaderGroups(address)` | Groups led by an address |
+| `createGroup(...)` | Deploys a new ChilimbaGroup contract |
+| `getAllGroups()` | Returns all group contract addresses |
+| `getLeaderGroups(address)` | Returns groups led by a specific address |
+| `getTotalGroups()` | Returns total number of groups created |
 
 ---
 
 ## 🔐 Security Architecture
 
 ```
-Layer 1 — Identity:
+Layer 1 — Identity Hashing (On-Chain):
   keccak256(fullName + nationalID + phone)
-  → Stored on blockchain — irreversible hash
+  Stored on blockchain — irreversible and tamper-proof
+  Cannot be reverse-engineered
 
-Layer 2 — Wallet (MetaMask):
-  Private key never leaves MetaMask
-  All transactions require explicit approval
+Layer 2 — Wallet Security:
+  Private keys never leave MetaMask
+  All transactions require explicit user approval in MetaMask
+  Auto-created wallets encrypted with AES-256 using user password
+  Encrypted key stored in MongoDB — never plaintext
 
-Layer 3 — Smart Contract:
-  Rules immutable after deployment
-  Re-entrancy guards (OpenZeppelin)
-  Overflow protection (Solidity 0.8+)
-  Only contract code controls funds
+Layer 3 — Smart Contract Security:
+  ReentrancyGuard (OpenZeppelin) on payContribution() and _releasePayout()
+  Checks-Effects-Interactions pattern — state updated BEFORE ETH transfer
+  Pausable emergency stop mechanism — leader only
+  Integer overflow protection built into Solidity 0.8+
+  OpenZeppelin battle-tested and audited libraries
 
-Layer 4 — Backend (planned):
-  Passwords bcrypt hashed
-  JWT authentication tokens
-  AES-256 encrypted wallet storage
-  MongoDB encrypted at rest
+Layer 4 — Backend Security:
+  Passwords hashed with bcrypt (12 salt rounds)
+  JWT tokens for session management (30-day expiry)
+  Rate limiting — max 10 auth requests per 15 minutes
+  Input validation on all endpoints
+  Specific duplicate error messages (phone vs NRC number)
+  SHA-256 identity hashing on backend mirrors on-chain approach
+
+Known Limitations (documented):
+  Block timestamp can be manipulated by miners (±15 seconds)
+  Beneficiary selection uses pseudo-random keccak256 — not true randomness
+  Admin panel protected by frontend password only
 ```
 
 ---
 
-## ✅ What's Working (Completed)
-
-- [x] Local Ethereum blockchain (Hardhat)
-- [x] MemberReputation smart contract
-- [x] ChilimbaGroup smart contract
-- [x] ChilimbaFactory smart contract
-- [x] Contract compilation and deployment
-- [x] React frontend connected to blockchain
-- [x] MetaMask wallet integration
-- [x] Landing page
-- [x] Dashboard with ETH balance and reputation
-- [x] 3-step group creation wizard
-- [x] Group view page
-- [x] Member joining with stake payment
-- [x] Contribution payment
-- [x] Automatic payout when all members pay
-- [x] Reputation score updates after payments
-- [x] Cycle progression (Cycle 1 → Cycle 2)
-- [x] Leader dashboard showing group status
-
----
-
-## 🔧 What Still Needs Building
-
-### Student 2 — Backend & Registration (HIGH PRIORITY)
-- [ ] Express.js server setup (`chainba-backend/index.js`)
-- [ ] MongoDB connection and user schema
-- [ ] `POST /api/register` — creates user + auto-generates wallet
-- [ ] `POST /api/login` — returns JWT token
-- [ ] Wallet encryption with user password (ethers.js `wallet.encrypt()`)
-- [ ] `GET /api/profile/:address` — user profile data
-- [ ] `GET /api/notifications/:address` — payment reminders
-- [ ] Replace MetaMask private key import with phone+password login
-
-### Student 4 — Missing Frontend Pages
-- [ ] Register page (name, phone, NRC, password)
-- [ ] Login page (phone + password)
-- [ ] Profile page (reputation history, transaction log)
-- [ ] Notification bell with payment reminders
-- [ ] Transaction history list
-
-### Student 3 — Test Suite
-- [ ] `test/MemberReputation.test.js`
-- [ ] `test/ChilimbaGroup.test.js`
-- [ ] `test/ChilimbaFactory.test.js`
-- [ ] Edge cases: double payment, wrong amount, ejection
-- [ ] Security tests: reentrancy, unauthorized access
-- [ ] Run with: `npx hardhat test`
-
-### All Students
-- [ ] Gas optimization review
-- [ ] Individual written reflections
-- [ ] Final presentation demo preparation
-- [ ] GitHub repository fully pushed and documented
-
----
-
-## 🗺️ Recommended Next Steps (In Order)
-
-### Week 1 (Now)
-```
-1. All members clone repo and complete setup
-2. Student 3 writes test suite
-3. Student 2 sets up Express backend + MongoDB
-4. Student 4 builds Register + Login pages
-```
-
-### Week 2
-```
-5. Student 2 implements wallet auto-creation on register
-6. Student 4 builds Profile page + notification bell
-7. Student 1 reviews contracts for gas optimization
-8. All students test the full flow end to end
-```
-
-### Week 3 (Final)
-```
-9. Full integration testing
-10. Bug fixes
-11. Written documentation and reflections
-12. Demo preparation
-13. Final GitHub push
-14. Submit
-```
-
----
-
-## 🧪 Running Tests (Student 3)
+## 🧪 Running Tests
 
 ```bash
 cd ~/chainba
 npx hardhat test
 ```
 
-Write tests in `test/` folder using this format:
-
-```javascript
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
-
-describe("ChilimbaGroup", function () {
-  it("Should allow member to join with correct stake", async function () {
-    // test code here
-  });
-});
+Current test results:
 ```
+  ChainBa — Full Test Suite
+    MemberReputation
+      ✔ Should register a member with score 100
+      ✔ Should keep score at 100 max on on-time payment
+      ✔ Should decrease score on late payment
+      ✔ Should decrease score on default
+      ✔ Should not allow score to go below zero
+    ChilimbaFactory
+      ✔ Should create a new group
+      ✔ Should track leader groups separately
+      ✔ Should increment total groups count
+    ChilimbaGroup — Joining
+      ✔ Should allow member to join with correct stake
+      ✔ Should reject joining with wrong stake
+      ✔ Should reject duplicate member joining
+      ✔ Should activate group when member limit reached
+      ✔ Should store member data correctly on joining
+    ChilimbaGroup — Contributions
+      ✔ Should allow active member to pay contribution
+      ✔ Should reject double payment in same cycle
+      ✔ Should reject wrong contribution amount
+      ✔ Should release payout when all members pay
+      ✔ Should advance to cycle 2 after cycle 1 completes
+    ChilimbaGroup — Security
+      ✔ Should reject stranger trying to pay
+      ✔ Should reject non-leader flagging default
+      ✔ Should pause and reject contributions when paused
+      ✔ Should resume contributions after unpause
+      ✔ Should reject joining when group is already active
+
+  23 passing (3s)
+```
+
+---
+
+## 🌐 Backend API Endpoints
+
+**Base URL:** `http://<your-ip>:5000`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | None | Register user — auto-creates Ethereum wallet |
+| POST | `/api/auth/login` | None | Login with phone + password — returns JWT |
+| GET | `/api/profile/me` | JWT Bearer | Get profile + ETH balance |
+| GET | `/api/admin/users` | x-admin-key header | List all registered users |
+
+**Register request body:**
+```json
+{
+  "fullName": "Frank Bwalya",
+  "phone": "0974831002",
+  "nrcNumber": "123456/78/1",
+  "password": "yourpassword"
+}
+```
+
+**Login request body:**
+```json
+{
+  "phone": "0974831002",
+  "password": "yourpassword"
+}
+```
+
+---
+
+## 🖥️ Frontend Pages
+
+| Page | Route | Description |
+|---|---|---|
+| Landing | `/` | Home page — MetaMask connect, Register, Login |
+| Register | `/register` | New user signup with NRC validation |
+| Login | `/login` | Phone + password authentication |
+| Dashboard | `/dashboard` | ETH balance, reputation score, all groups |
+| Create Group | `/create` | 3-step group creation wizard |
+| Group View | `/group/:address` | Group details, members, pay contribution |
+| Profile | `/profile` | Personal info, wallet address, identity hash |
+| Admin | `/admin` | All registered users (password: chainba2026) |
+
+---
+
+## 🧪 Hardhat Test Accounts
+
+These accounts are available every time `npx hardhat node` runs:
+
+| Account | Address | Private Key |
+|---|---|---|
+| #0 Leader/Frank | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` | `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80` |
+| #1 Bwalya | `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` | `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d` |
+| #2 Mulenga | `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC` | `0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a` |
+| #3 Grace | `0x90F79bf6EB2c4f870365E785982E1f101E93b906` | `0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6` |
+
+> ⚠️ These are test accounts only. Never send real ETH to these addresses.
+
+---
+
+## ✅ Completed Features
+
+- [x] Local Ethereum blockchain via Hardhat
+- [x] MemberReputation smart contract (Ownable + Pausable)
+- [x] ChilimbaGroup smart contract (ReentrancyGuard + Pausable)
+- [x] ChilimbaFactory smart contract
+- [x] OpenZeppelin 4.9.3 security libraries integrated
+- [x] Checks-effects-interactions pattern on all ETH transfers
+- [x] Contract compilation and deployment with auto address saving
+- [x] Full test suite — **23 tests passing**
+- [x] React frontend with session persistence (localStorage)
+- [x] MetaMask auto-connection on page load
+- [x] MetaMask account change listener
+- [x] Landing page with Register / Login / MetaMask options
+- [x] User registration with automatic blockchain wallet creation
+- [x] Phone + password login with JWT
+- [x] Dashboard with ETH balance and reputation score
+- [x] 3-step group creation wizard
+- [x] Group view page with live cycle information
+- [x] Member joining with stake payment
+- [x] Contribution payment via MetaMask
+- [x] Automatic payout when all members pay
+- [x] Reputation score updates after every payment
+- [x] Cycle progression (Cycle 1 → Cycle 2 → ...)
+- [x] Profile page with identity hash display
+- [x] Admin panel with registered user management
+- [x] Rate limiting — 10 auth requests per 15 minutes
+- [x] Specific error messages for duplicate phone / NRC
+- [x] NRC format validation (`123456/78/1`)
+- [x] MongoDB database with encrypted wallet storage
+- [x] bcrypt password hashing (12 rounds)
+- [x] JWT authentication (30-day tokens)
+- [x] Clipboard copy fallback for HTTP environments
+
+---
+
+## 🔧 Remaining Before Submission
+
+- [ ] Push all code to GitHub (`git push origin master`)
+- [ ] Individual written reflections — all 4 students
+- [ ] Appendix A completed and signed
+- [ ] Final presentation preparation and rehearsal
 
 ---
 
@@ -424,36 +490,51 @@ describe("ChilimbaGroup", function () {
 
 ```bash
 # Compile contracts
-npx hardhat compile
+cd ~/chainba && npx hardhat compile
 
 # Deploy contracts
-npx hardhat run scripts/deploy.js --network localhost
+cd ~/chainba && npx hardhat run scripts/deploy.js --network localhost
 
-# Run tests
-npx hardhat test
+# Run full test suite
+cd ~/chainba && npx hardhat test
 
 # Start local blockchain
-npx hardhat node
+cd ~/chainba && npx hardhat node
+
+# Start backend server
+cd ~/chainba/chainba-backend && node index.js
 
 # Start React frontend
-cd chainba-frontend && npm start
+cd ~/chainba/chainba-frontend && npm start
 
-# Start backend
-cd chainba-backend && node index.js
+# Check MongoDB users
+mongosh chainba --eval "db.users.find().pretty()"
 
 # Push to GitHub
-git add .
-git commit -m "your message"
-git push origin main
+cd ~/chainba && git add . && git commit -m "message" && git push origin master
 ```
 
 ---
 
-## 📞 Contract Addresses (Local — Reset on Restart)
+## 🤝 Git Workflow
 
-These are regenerated every time you run `deploy.js`. Current addresses saved in:
-```
-chainba-frontend/src/contracts/addresses.json
+Each student works only in their assigned folder to avoid merge conflicts:
+
+| Student | Work Only In |
+|---|---|
+| Student 1 | `contracts/` |
+| Student 2 | `chainba-backend/` |
+| Student 3 | `test/` and `scripts/` |
+| Student 4 | `chainba-frontend/` |
+
+```bash
+# Before starting work
+git pull origin master
+
+# After making changes
+git add .
+git commit -m "Student X: description of change"
+git push origin master
 ```
 
 ---
@@ -462,54 +543,27 @@ chainba-frontend/src/contracts/addresses.json
 
 For real-world deployment in Zambia:
 
-1. Deploy on **Polygon network** (cheaper gas than Ethereum)
-2. Integrate **AirtelMoney** payment gateway
-3. Use **USDC stablecoin** so users never touch crypto directly
-4. Get **Bank of Zambia** Payment Service Provider license
+1. Deploy on **Polygon network** — gas fees ~$0.001 vs Ethereum's $5–50
+2. Integrate **AirtelMoney** payment gateway for ZMW deposits
+3. Replace ETH with **USDC stablecoin** — users never interact with crypto directly
+4. Obtain **Bank of Zambia** Payment Service Provider licence
 5. Add **USSD support** (`*123#`) for feature phone users
-6. **Mobile app** (React Native or Flutter)
-7. Professional **smart contract security audit**
+6. Build **React Native mobile app**
+7. Commission professional **smart contract security audit**
 
 ---
 
 ## 📄 Assignment Deliverables Checklist
 
-- [ ] GitHub repository with all code
-- [ ] Smart contracts (3 files) — Student 1
-- [ ] Deployment scripts — Student 3
-- [ ] Test suite — Student 3
-- [ ] React frontend — Student 4
-- [ ] Backend API — Student 2
-- [ ] This README
-- [ ] Individual written reflections (each student)
+- [x] GitHub repository — https://github.com/b5119/chainba
+- [x] Smart contracts (3 files) — Student 1
+- [x] Deployment scripts — Student 3
+- [x] Test suite (23 passing) — Student 3
+- [x] React frontend (8 pages) — Student 4
+- [x] Backend API — Student 2
+- [x] README documentation
+- [ ] Individual written reflections — all students
 - [ ] Live demo during presentation
-
----
-
-## 🤝 Git Workflow for Team
-
-```bash
-# Before starting work each day
-git pull origin main
-
-# After making changes
-git add .
-git commit -m "Student 2: Added login endpoint"
-git push origin main
-
-# If conflicts
-git pull origin main
-# resolve conflicts
-git add .
-git commit -m "Merged conflicts"
-git push origin main
-```
-
-Each student should work on their own files to avoid conflicts:
-- Student 1 → `contracts/` folder only
-- Student 2 → `chainba-backend/` folder only
-- Student 3 → `test/` and `scripts/` folders
-- Student 4 → `chainba-frontend/` folder only
 
 ---
 
