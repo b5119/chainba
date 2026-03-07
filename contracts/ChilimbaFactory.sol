@@ -2,59 +2,44 @@
 pragma solidity ^0.8.19;
 
 import "./ChilimbaGroup.sol";
-import "./MemberReputation.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ChilimbaFactory {
-
+contract ChilimbaFactory is Ownable {
     address[] public allGroups;
-    address public reputationContract;
     mapping(address => address[]) public leaderGroups;
+    address public reputationContract;
 
-    event GroupCreated(address groupAddress, address leader, string groupName);
+    event GroupCreated(address indexed leader, address indexed groupAddress, string groupName);
 
-    constructor(address _reputationContract) {
+    constructor(address _reputationContract)  {
         reputationContract = _reputationContract;
     }
 
     function createGroup(
-        string memory _groupName,
-        string memory _groupType,
-        uint256 _contributionAmount,
-        uint256 _stakeAmount,
-        uint256 _memberLimit,
-        uint256 _gracePeriodDays,
-        uint256 _penaltyAmount,
-        uint256 _ejectionThreshold
+        string memory groupName, string memory groupType,
+        uint256 contributionAmount, uint256 stakeAmount,
+        uint256 memberLimit, uint256 gracePeriodDays,
+        uint256 penaltyAmount, uint256 ejectionThreshold
     ) external returns (address) {
+        require(memberLimit >= 2 && memberLimit <= 20, "Member limit must be 2-20");
+        require(contributionAmount > 0, "Contribution must be greater than 0");
+        require(stakeAmount > 0, "Stake must be greater than 0");
 
-        ChilimbaGroup newGroup = new ChilimbaGroup(
-            msg.sender,
-            _groupName,
-            _groupType,
-            _contributionAmount,
-            _stakeAmount,
-            _memberLimit,
-            _gracePeriodDays,
-            _penaltyAmount,
-            _ejectionThreshold,
+        ChilimbaGroup group = new ChilimbaGroup(
+            msg.sender, groupName, groupType,
+            contributionAmount, stakeAmount, memberLimit,
+            gracePeriodDays, penaltyAmount, ejectionThreshold,
             reputationContract
         );
 
-        allGroups.push(address(newGroup));
-        leaderGroups[msg.sender].push(address(newGroup));
-        emit GroupCreated(address(newGroup), msg.sender, _groupName);
-        return address(newGroup);
+        allGroups.push(address(group));
+        leaderGroups[msg.sender].push(address(group));
+
+        emit GroupCreated(msg.sender, address(group), groupName);
+        return address(group);
     }
 
-    function getAllGroups() external view returns (address[] memory) {
-        return allGroups;
-    }
-
-    function getLeaderGroups(address _leader) external view returns (address[] memory) {
-        return leaderGroups[_leader];
-    }
-
-    function getTotalGroups() external view returns (uint256) {
-        return allGroups.length;
-    }
+    function getAllGroups() external view returns (address[] memory) { return allGroups; }
+    function getLeaderGroups(address leader) external view returns (address[] memory) { return leaderGroups[leader]; }
+    function getTotalGroups() external view returns (uint256) { return allGroups.length; }
 }

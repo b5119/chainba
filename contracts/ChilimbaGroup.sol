@@ -1,30 +1,39 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "./MemberReputation.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 
-contract ChilimbaGroup {
+interface IReputation {
+    function registerMember(address) external;
+    function recordOnTimePayment(address) external;
+    function recordLatePayment(address) external;
+    function recordDefault(address) external;
+    function recordEjection(address) external;
+    function getScore(address) external view returns (uint256);
+}
 
-    enum GroupStatus { OPEN, ACTIVE, COMPLETED }
-    enum MemberStatus { PAID, PENDING, LATE, DEFAULTED }
+contract ChilimbaGroup is ReentrancyGuard, Pausable {
+    enum Status { Open, Active, Completed, Cancelled }
 
     struct Member {
-        address wallet;
+        string fullName;
         bytes32 identityHash;
-        MemberStatus status;
-        uint256 stakeDeposited;
-        bool exists;
+        bool joined;
         bool ejected;
+        bool stakeReturned;
+        uint256 joinedAt;
     }
 
     struct Cycle {
-        uint256 cycleNumber;
         address beneficiary;
         uint256 totalCollected;
-        bool completed;
         uint256 deadline;
+        bool completed;
+        mapping(address => bool) paid;
     }
 
+    address public leader;
     string public groupName;
     string public groupType;
     uint256 public contributionAmount;
@@ -33,52 +42,32 @@ contract ChilimbaGroup {
     uint256 public gracePeriodDays;
     uint256 public penaltyAmount;
     uint256 public ejectionThreshold;
-    address public leader;
-    GroupStatus public status;
+    Status public status;
+    IReputation public reputationContract;
 
-    mapping(address => Member) public members;
     address[] public memberList;
-    address[] public rotationOrder;
-    Cycle[] public cycles;
+    mapping(address => Member) public members;
+    mapping(uint256 => Cycle) public cycles;
     uint256 public currentCycle;
-    mapping(address => uint256) public defaultCount;
+    address[] public rotationOrder;
 
-    MemberReputation public reputationContract;
+    event MemberJoined(address indexed member, string fullName);
+    event ContributionPaid(address indexed member, uint256 cycle, bool onTime);
+    event PayoutReleased(address indexed beneficiary, uint256 amount, uint256 cycle);
+    event MemberDefaulted(address indexed member, uint256 cycle);
+    event MemberEjected(address indexed member);
+    event GroupActivated();
+    event GroupCompleted();
 
-    event MemberJoined(address member, bytes32 identityHash);
-    event GroupActivated(address[] rotationOrder);
-    event ContributionPaid(address member, uint256 amount, uint256 cycle);
-    event PayoutReleased(address beneficiary, uint256 amount, uint256 cycle);
-    event MemberDefaulted(address member, uint256 cycle);
-    event MemberEjected(address member);
-    event StakeReturned(address member, uint256 amount);
-
-    modifier onlyLeader() {
-        require(msg.sender == leader, "Only leader");
-        _;
-    }
-
-    modifier onlyMember() {
-        require(members[msg.sender].exists, "Not a member");
-        require(!members[msg.sender].ejected, "You are ejected");
-        _;
-    }
-
-    modifier onlyActive() {
-        require(status == GroupStatus.ACTIVE, "Group not active");
-        _;
-    }
+    modifier onlyLeader() { require(msg.sender == leader, "Only leader"); _; }
+    modifier onlyMember() { require(members[msg.sender].joined && !members[msg.sender].ejected, "Not active member"); _; }
+    modifier onlyActive() { require(status == Status.Active, "Group not active"); _; }
+    modifier onlyOpen() { require(status == Status.Open, "Group not open"); _; }
 
     constructor(
-        address _leader,
-        string memory _groupName,
-        string memory _groupType,
-        uint256 _contributionAmount,
-        uint256 _stakeAmount,
-        uint256 _memberLimit,
-        uint256 _gracePeriodDays,
-        uint256 _penaltyAmount,
-        uint256 _ejectionThreshold,
+        address _leader, string memory _groupName, string memory _groupType,
+        uint256 _contributionAmount, uint256 _stakeAmount, uint256 _memberLimit,
+        uint256 _gracePeriodDays, uint256 _penaltyAmount, uint256 _ejectionThreshold,
         address _reputationContract
     ) {
         leader = _leader;
@@ -90,36 +79,23 @@ contract ChilimbaGroup {
         gracePeriodDays = _gracePeriodDays;
         penaltyAmount = _penaltyAmount;
         ejectionThreshold = _ejectionThreshold;
-        reputationContract = MemberReputation(_reputationContract);
-        status = GroupStatus.OPEN;
+        reputationContract = IReputation(_reputationContract);
+        status = Status.Open;
     }
 
-    function joinGroup(
-        string memory _fullName,
-        string memory _nationalId,
-        string memory _phone
-    ) external payable {
-        require(status == GroupStatus.OPEN, "Group not open");
-        require(!members[msg.sender].exists, "Already a member");
+    function joinGroup(string memory fullName, string memory nationalId, string memory phone)
+        external payable onlyOpen whenNotPaused nonReentrant {
+        require(!members[msg.sender].joined, "Already joined");
         require(memberList.length < memberLimit, "Group is full");
-        require(msg.value == stakeAmount, "Wrong stake amount");
+        require(msg.value == stakeAmount, "Incorrect stake amount");
 
-        bytes32 identityHash = keccak256(
-            abi.encodePacked(_fullName, _nationalId, _phone)
-        );
-
-        members[msg.sender] = Member({
-            wallet: msg.sender,
-            identityHash: identityHash,
-            status: MemberStatus.PENDING,
-            stakeDeposited: msg.value,
-            exists: true,
-            ejected: false
-        });
-
+        bytes32 idHash = keccak256(abi.encodePacked(fullName, nationalId, phone));
+        members[msg.sender] = Member(fullName, idHash, true, false, false, block.timestamp);
         memberList.push(msg.sender);
-        reputationContract.registerMember(msg.sender);
-        emit MemberJoined(msg.sender, identityHash);
+
+        try reputationContract.registerMember(msg.sender) {} catch {}
+
+        emit MemberJoined(msg.sender, fullName);
 
         if (memberList.length == memberLimit) {
             _activateGroup();
@@ -127,176 +103,128 @@ contract ChilimbaGroup {
     }
 
     function _activateGroup() internal {
-        status = GroupStatus.ACTIVE;
+        status = Status.Active;
         rotationOrder = memberList;
 
-        for (uint i = rotationOrder.length - 1; i > 0; i--) {
-            uint j = uint(keccak256(
-                abi.encodePacked(block.timestamp, i)
-            )) % (i + 1);
+        // Shuffle rotation using block data
+        for (uint256 i = rotationOrder.length - 1; i > 0; i--) {
+            uint256 j = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, i))) % (i + 1);
             address temp = rotationOrder[i];
             rotationOrder[i] = rotationOrder[j];
             rotationOrder[j] = temp;
         }
 
-        currentCycle = 0;
-        _startNewCycle();
-        emit GroupActivated(rotationOrder);
+        currentCycle = 1;
+        _startCycle(currentCycle);
+        emit GroupActivated();
     }
 
-    function _startNewCycle() internal {
-        cycles.push(Cycle({
-            cycleNumber: currentCycle,
-            beneficiary: rotationOrder[currentCycle],
-            totalCollected: 0,
-            completed: false,
-            deadline: block.timestamp + (gracePeriodDays * 1 days) + 30 days
-        }));
-
-        for (uint i = 0; i < memberList.length; i++) {
-            if (!members[memberList[i]].ejected) {
-                members[memberList[i]].status = MemberStatus.PENDING;
-            }
-        }
+    function _startCycle(uint256 cycleNum) internal {
+        Cycle storage c = cycles[cycleNum];
+        c.beneficiary = rotationOrder[cycleNum - 1];
+        c.deadline = block.timestamp + (gracePeriodDays * 1 days) + 30 days;
+        c.totalCollected = 0;
+        c.completed = false;
     }
 
-    function payContribution() external payable onlyMember onlyActive {
-        Cycle storage cycle = cycles[currentCycle];
-        require(!cycle.completed, "Cycle already complete");
-        require(
-            members[msg.sender].status == MemberStatus.PENDING ||
-            members[msg.sender].status == MemberStatus.LATE,
-            "Already paid"
-        );
+    function payContribution() external payable onlyMember onlyActive whenNotPaused nonReentrant {
+        Cycle storage c = cycles[currentCycle];
+        require(!c.paid[msg.sender], "Already paid this cycle");
+        require(msg.value == contributionAmount, "Incorrect contribution amount");
 
-        uint256 required = contributionAmount;
-        if (block.timestamp > cycle.deadline - (30 days)) {
-            required += penaltyAmount;
-            members[msg.sender].status = MemberStatus.LATE;
-            reputationContract.recordLatePayment(msg.sender);
+        c.paid[msg.sender] = true;
+
+        bool isLate = block.timestamp > c.deadline - (30 days);
+        if (isLate) {
+            try reputationContract.recordLatePayment(msg.sender) {} catch {}
+            emit ContributionPaid(msg.sender, currentCycle, false);
         } else {
-            members[msg.sender].status = MemberStatus.PAID;
-            reputationContract.recordOnTimePayment(msg.sender);
+            try reputationContract.recordOnTimePayment(msg.sender) {} catch {}
+            emit ContributionPaid(msg.sender, currentCycle, true);
         }
 
-        require(msg.value == required, "Wrong amount");
-        cycle.totalCollected += msg.value;
-        emit ContributionPaid(msg.sender, msg.value, currentCycle);
+        c.totalCollected += msg.value;
 
-        if (_allMembersPaid()) {
-            _releasePayout();
-        }
-    }
-
-    function _allMembersPaid() internal view returns (bool) {
-        for (uint i = 0; i < memberList.length; i++) {
-            address m = memberList[i];
-            if (!members[m].ejected) {
-                if (
-                    members[m].status != MemberStatus.PAID &&
-                    members[m].status != MemberStatus.LATE
-                ) {
-                    return false;
-                }
+        // Check if all active members paid
+        bool allPaid = true;
+        for (uint256 i = 0; i < memberList.length; i++) {
+            if (!members[memberList[i]].ejected && !c.paid[memberList[i]]) {
+                allPaid = false;
+                break;
             }
         }
-        return true;
+
+        if (allPaid) _releasePayout();
     }
 
     function _releasePayout() internal {
-        Cycle storage cycle = cycles[currentCycle];
-        cycle.completed = true;
-        address beneficiary = cycle.beneficiary;
-        uint256 payout = cycle.totalCollected;
+        Cycle storage c = cycles[currentCycle];
+        c.completed = true;
+        address beneficiary = c.beneficiary;
+        uint256 amount = c.totalCollected;
 
-        emit PayoutReleased(beneficiary, payout, currentCycle);
-        (bool sent, ) = beneficiary.call{value: payout}("");
-        require(sent, "Payout failed");
+        // Update state BEFORE transfer (reentrancy protection)
+        c.totalCollected = 0;
 
-        if (currentCycle + 1 < rotationOrder.length) {
-            currentCycle++;
-            _startNewCycle();
+        emit PayoutReleased(beneficiary, amount, currentCycle);
+
+        if (currentCycle == memberLimit) {
+            status = Status.Completed;
+            _returnStakes();
+            emit GroupCompleted();
         } else {
-            _closeGroup();
+            currentCycle++;
+            _startCycle(currentCycle);
         }
+
+        // Transfer AFTER state update
+        (bool success, ) = payable(beneficiary).call{value: amount}("");
+        require(success, "Payout transfer failed");
     }
 
-    function flagDefault(address _member) external onlyLeader onlyActive {
-        require(members[_member].exists, "Not a member");
-        require(members[_member].status == MemberStatus.PENDING, "Not pending");
-
-        Cycle storage cycle = cycles[currentCycle];
-        require(block.timestamp > cycle.deadline, "Grace period not over");
-
-        members[_member].status = MemberStatus.DEFAULTED;
-        defaultCount[_member]++;
-        reputationContract.recordDefault(_member);
-
-        uint256 penalty = members[_member].stakeDeposited >= penaltyAmount
-            ? penaltyAmount : members[_member].stakeDeposited;
-
-        members[_member].stakeDeposited -= penalty;
-        cycle.totalCollected += penalty;
-        emit MemberDefaulted(_member, currentCycle);
-
-        if (defaultCount[_member] >= ejectionThreshold) {
-            _ejectMember(_member);
-        }
-
-        if (_allMembersPaid()) {
-            _releasePayout();
-        }
-    }
-
-    function _ejectMember(address _member) internal {
-        members[_member].ejected = true;
-        reputationContract.recordEjection(_member);
-
-        uint256 remaining = members[_member].stakeDeposited;
-        if (remaining > 0) {
-            members[_member].stakeDeposited = 0;
-            uint256 share = remaining / memberList.length;
-            for (uint i = 0; i < memberList.length; i++) {
-                if (memberList[i] != _member && !members[memberList[i]].ejected) {
-                    (bool sent, ) = memberList[i].call{value: share}("");
-                    require(sent, "Share failed");
-                }
-            }
-        }
-        emit MemberEjected(_member);
-    }
-
-    function _closeGroup() internal {
-        status = GroupStatus.COMPLETED;
-        for (uint i = 0; i < memberList.length; i++) {
-            address m = memberList[i];
-            uint256 stake = members[m].stakeDeposited;
-            if (stake > 0 && !members[m].ejected) {
-                members[m].stakeDeposited = 0;
-                (bool sent, ) = m.call{value: stake}("");
-                require(sent, "Stake return failed");
-                emit StakeReturned(m, stake);
+    function _returnStakes() internal {
+        for (uint256 i = 0; i < memberList.length; i++) {
+            address member = memberList[i];
+            if (!members[member].ejected && !members[member].stakeReturned) {
+                members[member].stakeReturned = true;
+                (bool success, ) = payable(member).call{value: stakeAmount}("");
+                if (!success) members[member].stakeReturned = false;
             }
         }
     }
 
-    function getMemberCount() external view returns (uint256) {
-        return memberList.length;
+    function flagDefault(address member) external onlyLeader onlyActive whenNotPaused {
+        Cycle storage c = cycles[currentCycle];
+        require(!c.paid[member], "Member already paid");
+        require(block.timestamp > c.deadline, "Deadline not passed");
+        require(members[member].joined && !members[member].ejected, "Not active member");
+
+        try reputationContract.recordDefault(member) {} catch {}
+        emit MemberDefaulted(member, currentCycle);
+
+        uint256 score = reputationContract.getScore(member);
+        if (score <= ejectionThreshold) {
+            members[member].ejected = true;
+            try reputationContract.recordEjection(member) {} catch {}
+            emit MemberEjected(member);
+        }
     }
 
-    function getCurrentBeneficiary() external view returns (address) {
-        return rotationOrder[currentCycle];
+    function hasPaid(address member, uint256 cycleNum) external view returns (bool) {
+        return cycles[cycleNum].paid[member];
     }
 
-    function getCycleInfo(uint256 _cycle) external view returns (
-        address beneficiary,
-        uint256 totalCollected,
-        bool completed,
-        uint256 deadline
+    function getCycleInfo(uint256 cycleNum) external view returns (
+        address beneficiary, uint256 totalCollected, uint256 deadline, bool completed
     ) {
-        Cycle memory c = cycles[_cycle];
-        return (c.beneficiary, c.totalCollected, c.completed, c.deadline);
+        Cycle storage c = cycles[cycleNum];
+        return (c.beneficiary, c.totalCollected, c.deadline, c.completed);
     }
 
-    receive() external payable {}
+    function getMembers() external view returns (address[] memory) { return memberList; }
+    function getMemberCount() external view returns (uint256) { return memberList.length; }
+    function getCurrentBeneficiary() external view returns (address) { return cycles[currentCycle].beneficiary; }
+
+    function pause() external onlyLeader { _pause(); }
+    function unpause() external onlyLeader { _unpause(); }
 }
