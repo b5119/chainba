@@ -1,112 +1,121 @@
+/* fonts via index.html */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 
-/* ── Base ──────────────────────────────────────────────────────────────── */
-.cb2 {
-  font-family: 'DM Sans', sans-serif;
-  background: #0A0A08;
-  color: #F0EDE6;
-  min-height: 100vh;
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
-}
-
-.cb2 * { box-sizing: border-box; }
-
-/* ── Typography ─────────────────────────────────────────────────────────── */
-.cb2-hl {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -2px;
-  margin: 0;
+.cb2{
+  font-family:'DM Sans',sans-serif;
+  background:#FFFFFF;
+  color:#0F172A;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
 }
 
-/* ── Scroll reveal — Brex/Wealthsimple style staggered fade-up ───────────
-   Elements start invisible+shifted. JS adds .in when entering viewport.   */
-.reveal {
-  opacity: 0;
-  transform: translateY(32px);
-  transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
-              transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+/* ── Type ── */
+.cb2-hl{
+  font-family:'Playfair Display',Georgia,serif;
+  font-weight:700;
+  line-height:1.06;
+  letter-spacing:-1.5px;
+  margin:0;
 }
 
-.reveal.in {
-  opacity: 1;
-  transform: translateY(0);
-}
+/* ── Sections ── */
+.cb2-s   {padding:7rem 3rem;background:#FFFFFF;}
+.cb2-s-alt{padding:7rem 3rem;background:#F8FAFC;}
+.cb2-s-dark{padding:7rem 3rem;background:#0A0E1A;position:relative;overflow:hidden;}
+.cb2-inner{max-width:1080px;margin:0 auto;}
 
-/* Stagger delays for sibling reveals */
-.reveal.d1 { transition-delay: 0.1s; }
-.reveal.d2 { transition-delay: 0.22s; }
-.reveal.d3 { transition-delay: 0.36s; }
-.reveal.d4 { transition-delay: 0.52s; }
+/* ── Reveal — two-step, no flash ── */
+.cb2-r{opacity:1;transform:translateY(0);transition:opacity .75s cubic-bezier(.22,1,.36,1),transform .75s cubic-bezier(.22,1,.36,1);}
+.cb2-r.set{opacity:0;transform:translateY(28px);}
+.cb2-r.set.in{opacity:1;transform:translateY(0);}
+.cb2-r.d1{transition-delay:.1s;}
+.cb2-r.d2{transition-delay:.22s;}
+.cb2-r.d3{transition-delay:.36s;}
+.cb2-r.d4{transition-delay:.52s;}
 
-/* ── Kente animation ────────────────────────────────────────────────────── */
-@keyframes kenteScroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
+/* ── Kente ── */
+@keyframes ks{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.cb2-kt{display:flex;height:100%;width:200%;animation:ks 20s linear infinite;}
+.cb2-kt.rev{animation-direction:reverse;animation-duration:26s;}
 
-/* ── Diamond pulse (logo accent) ────────────────────────────────────────── */
-@keyframes diamondPulse {
-  0%, 100% { opacity: 0.7; transform: rotate(45deg) scale(1); }
-  50%       { opacity: 1;   transform: rotate(45deg) scale(1.12); }
-}
+/* ── Mesh gradient ── */
+@keyframes mesh{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
-/* ── Sticky bar slide up ────────────────────────────────────────────────── */
-@keyframes slideUp {
-  from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
+/* ── Float ── */
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 
-/* ── Buttons ────────────────────────────────────────────────────────────── */
-.cb2-btn-primary {
-  background: #BA7517;
-  color: #0A0A08;
-  border: none;
-  padding: 13px 28px;
-  border-radius: 6px;
-  font-size: 15px;
-  font-weight: 500;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.15s;
-}
-.cb2-btn-primary:hover {
-  background: #EF9F27;
-  transform: translateY(-1px);
-}
+/* ── Pulse (logo) ── */
+@keyframes lp{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
 
-.cb2-btn-ghost {
-  background: transparent;
-  color: #F0EDE6;
-  border: 1px solid rgba(240,237,230,0.12);
-  padding: 13px 28px;
-  border-radius: 6px;
-  font-size: 15px;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer;
-  transition: border-color 0.2s, transform 0.15s;
-}
-.cb2-btn-ghost:hover {
-  border-color: rgba(240,237,230,0.28);
-  transform: translateY(-1px);
-}
+/* ── Slide up ── */
+@keyframes su{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
 
-/* ── Nav links ──────────────────────────────────────────────────────────── */
-.cb2-navlink {
-  cursor: pointer;
-  transition: color 0.2s;
-  text-decoration: none;
+/* ── Buttons ── */
+.btn-p{
+  background:#10B981;color:#fff;border:none;
+  padding:14px 28px;border-radius:10px;
+  font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;
+  cursor:pointer;transition:background .2s,transform .15s,box-shadow .2s;
+  box-shadow:0 2px 14px rgba(16,185,129,.3);
 }
-.cb2-navlink:hover { color: #F0EDE6 !important; }
+.btn-p:hover{background:#059669;transform:translateY(-2px);box-shadow:0 6px 24px rgba(16,185,129,.4);}
 
-/* ── Feature cards ──────────────────────────────────────────────────────── */
-.feat-card {
-  transition: border-color 0.25s ease,
-              transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+.btn-g{
+  background:rgba(255,255,255,.08);color:#fff;
+  border:1px solid rgba(255,255,255,.2);
+  padding:14px 28px;border-radius:10px;
+  font-size:15px;font-family:'DM Sans',sans-serif;
+  cursor:pointer;transition:background .2s,border-color .2s,transform .15s;
+  backdrop-filter:blur(8px);
 }
-.feat-card:hover {
-  border-color: rgba(240,237,230,0.18) !important;
-  transform: translateY(-4px);
+.btn-g:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4);transform:translateY(-2px);}
+
+.btn-dk{
+  background:#0F172A;color:#fff;border:none;
+  padding:14px 28px;border-radius:10px;
+  font-size:15px;font-weight:500;font-family:'DM Sans',sans-serif;
+  cursor:pointer;transition:background .2s,transform .15s;
 }
+.btn-dk:hover{background:#1E293B;transform:translateY(-2px);}
+
+.btn-ot{
+  background:transparent;color:#0F172A;
+  border:1.5px solid #CBD5E1;
+  padding:14px 28px;border-radius:10px;
+  font-size:15px;font-family:'DM Sans',sans-serif;
+  cursor:pointer;transition:border-color .2s,background .2s,transform .15s;
+}
+.btn-ot:hover{border-color:#0F172A;background:#F8FAFC;transform:translateY(-2px);}
+
+/* ── Nav ── */
+.nl{font-size:14px;color:rgba(255,255,255,.6);cursor:pointer;transition:color .2s;}
+.nl:hover{color:#fff;}
+
+/* ── Cards ── */
+.feat-card{
+  background:#fff;border:1px solid #E2E8F0;
+  border-radius:20px;padding:1.75rem;
+  transition:border-color .25s,transform .3s cubic-bezier(.22,1,.36,1),box-shadow .3s;
+}
+.feat-card:hover{border-color:#10B981;transform:translateY(-5px);box-shadow:0 12px 40px rgba(16,185,129,.12);}
+
+.path-card{
+  background:#fff;border:1.5px solid #E2E8F0;
+  border-radius:20px;padding:2rem;
+  transition:border-color .25s,box-shadow .25s;
+}
+.path-card:hover{border-color:#10B98144;box-shadow:0 8px 32px rgba(16,185,129,.1);}
+
+/* ── Stat cell ── */
+.stat-cell{padding:2rem 2rem;border-right:1px solid rgba(255,255,255,.08);}
+.stat-cell:last-child{border-right:none;}
+
+/* ── Member card ── */
+.mem-card{
+  background:#fff;border:1px solid #E2E8F0;
+  border-radius:16px;padding:12px 16px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 2px 8px rgba(15,23,42,.04);
+  transition:box-shadow .2s,transform .2s;
+}
+.mem-card:hover{box-shadow:0 6px 20px rgba(15,23,42,.08);transform:translateY(-2px);}

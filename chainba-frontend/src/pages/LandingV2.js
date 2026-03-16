@@ -1,380 +1,607 @@
 import { useEffect, useRef, useState } from "react";
 import "./LandingV2.css";
 
-const T = {
-  bg:"#0A0A08", bgCard:"#111110", bgMuted:"#161614",
-  amber:"#BA7517", amberBright:"#EF9F27", amberFaint:"#2A1C05",
-  teal:"#1D9E75", tealFaint:"#051F15", coral:"#D85A30",
-  text:"#F0EDE6", textMuted:"#8A8880", textDim:"#4A4845",
-  border:"rgba(240,237,230,0.07)", borderHover:"rgba(240,237,230,0.15)",
+// ─── Tokens ────────────────────────────────────────────────────────────────
+const C = {
+  navy:    "#0A0E1A",
+  navyMid: "#1E293B",
+  white:   "#FFFFFF",
+  ice:     "#F8FAFC",
+  emerald: "#10B981",
+  emeraldD:"#059669",
+  indigo:  "#6366F1",
+  indigoL: "#EEF2FF",
+  red:     "#EF4444",
+  text:    "#0F172A",
+  textMid: "#334155",
+  textMuted:"#64748B",
+  textDim: "#94A3B8",
+  border:  "#E2E8F0",
+  borderMid:"#CBD5E1",
 };
 
+// Kente palette — cultural DNA, animation only
+const KC = [
+  "#F59E0B","#10B981","#EF4444","#FCD34D","#6366F1","#F97316",
+  "#F59E0B","#10B981","#EF4444","#FCD34D","#6366F1","#F97316",
+  "#F59E0B","#10B981","#EF4444","#FCD34D","#6366F1","#F97316",
+  "#F59E0B","#10B981","#EF4444","#FCD34D",
+];
+
+// ─── Logo SVG — placeholder until Frank shares his idea ────────────────────
+// Temporary: chain-link circle. Will be replaced.
+const LogoMark = ({ size = 28, onDark = true }) => (
+  <svg width={size} height={size} viewBox="0 0 28 28" fill="none">
+    <circle cx="14" cy="14" r="11" stroke={onDark ? "#FFFFFF" : C.text} strokeWidth="2" opacity=".3"/>
+    <circle cx="14" cy="14" r="6" stroke={C.emerald} strokeWidth="2.5"/>
+    <circle cx="14" cy="14" r="2" fill={C.emerald}/>
+    <line x1="14" y1="3" x2="14" y2="8" stroke={C.emerald} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="14" y1="20" x2="14" y2="25" stroke={C.emerald} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="3" y1="14" x2="8" y2="14" stroke={C.indigo} strokeWidth="2" strokeLinecap="round"/>
+    <line x1="20" y1="14" x2="25" y2="14" stroke={C.indigo} strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+// ─── useReveal ─────────────────────────────────────────────────────────────
 function useReveal(delay = 0) {
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const trigger = () => setTimeout(() => el.classList.add("in"), delay);
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight - 40) { trigger(); return; }
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { trigger(); obs.disconnect(); } },
-      { threshold: 0.1 }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
+    el.classList.add("set");
+    const t = setTimeout(() => {
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight - 60) {
+        setTimeout(() => el.classList.add("in"), delay);
+        return;
+      }
+      const obs = new IntersectionObserver(
+        ([e]) => { if (e.isIntersecting) { setTimeout(() => el.classList.add("in"), delay); obs.disconnect(); } },
+        { threshold: 0.08 }
+      );
+      obs.observe(el);
+    }, 50);
+    return () => clearTimeout(t);
   }, [delay]);
   return ref;
 }
 
-function Counter({ target, suffix = "" }) {
-  const [val, setVal] = useState(0);
-  const ref = useRef(null);
-  const done = useRef(false);
-  useEffect(() => {
-    const el = ref.current; if (!el) return;
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && !done.current) {
-        done.current = true;
-        let t0 = null;
-        const tick = (ts) => {
-          if (!t0) t0 = ts;
-          const p = Math.min((ts - t0) / 1400, 1);
-          setVal(Math.floor((1 - Math.pow(1 - p, 3)) * target));
-          if (p < 1) requestAnimationFrame(tick); else setVal(target);
-        };
-        requestAnimationFrame(tick);
-        obs.disconnect();
-      }
-    }, { threshold: 0.3 });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [target]);
-  return <span ref={ref}>{val.toLocaleString()}{suffix}</span>;
-}
-
-const KC = ["#BA7517","#0F6E56","#D85A30","#FAC775","#1D9E75","#993C1D","#BA7517","#5DCAA5","#EF9F27","#D85A30","#0F6E56","#FAC775","#1D9E75","#BA7517","#D85A30","#0F6E56","#FAC775","#BA7517","#5DCAA5","#993C1D","#EF9F27","#1D9E75"];
-function KenteStrip({ opacity = 1 }) {
+// ─── KenteStrip ────────────────────────────────────────────────────────────
+function KenteStrip({ h = 4, opacity = 1, reverse = false }) {
   return (
-    <div style={{ overflow:"hidden", height:"4px", width:"100%" }}>
-      <div style={{ display:"flex", height:"4px", width:"200%", animation:"kenteScroll 18s linear infinite" }}>
+    <div style={{ overflow:"hidden", height:h, width:"100%", flexShrink:0 }}>
+      <div className={`cb2-kt${reverse ? " rev" : ""}`} style={{ height:h }}>
         {[...KC,...KC].map((c,i) => <div key={i} style={{ flex:1, background:c, opacity }} />)}
       </div>
     </div>
   );
 }
 
-function Diamond({ size=12, color=T.amber, pulse=false, style:sx={} }) {
-  return <div style={{ width:size, height:size, background:color, borderRadius:"2px", flexShrink:0, transform:"rotate(45deg)", animation:pulse?"diamondPulse 3s ease-in-out infinite":"none", ...sx }} />;
+// ─── Eyebrow pill ──────────────────────────────────────────────────────────
+function Pill({ children, color = C.emerald, onDark = false }) {
+  return (
+    <div style={{
+      display:"inline-flex", alignItems:"center", gap:"7px",
+      background: onDark ? "rgba(16,185,129,.15)" : "#ECFDF5",
+      border:`1px solid ${color}33`,
+      padding:"5px 14px", borderRadius:"100px", marginBottom:"1.25rem",
+    }}>
+      <div style={{ width:6, height:6, background:color, borderRadius:"50%", flexShrink:0 }} />
+      <span style={{ fontSize:"11px", color, fontWeight:"500", letterSpacing:"1.2px", textTransform:"uppercase" }}>
+        {children}
+      </span>
+    </div>
+  );
 }
 
-function Navbar({ onConnect, onLogin }) {
+// ══════════════════════════════════════════════════════════════════════════
+// NAVBAR
+// ══════════════════════════════════════════════════════════════════════════
+function Navbar({ onLogin, onRegister, onConnect }) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 40);
+    const fn = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
   return (
-    <nav style={{ position:"fixed", top:0, left:0, right:0, zIndex:100, padding:"0 2.5rem", height:"64px", display:"flex", alignItems:"center", justifyContent:"space-between", background:scrolled?"rgba(10,10,8,0.94)":"transparent", backdropFilter:scrolled?"blur(14px)":"none", borderBottom:scrolled?`1px solid ${T.border}`:"none", transition:"background .35s" }}>
-      <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
-        <Diamond size={14} color={T.amber} pulse />
-        <Diamond size={9} color={T.coral} style={{ marginLeft:"-3px", marginTop:"5px" }} />
-        <span style={{ fontFamily:"'Playfair Display',serif", fontSize:"20px", color:T.text, marginLeft:"6px", letterSpacing:"-0.5px" }}>ChainBa</span>
+    <nav style={{
+      position:"fixed", top:0, left:0, right:0, zIndex:100,
+      height:68, padding:"0 3rem",
+      display:"flex", alignItems:"center", justifyContent:"space-between",
+      background: scrolled ? "rgba(10,14,26,.97)" : "transparent",
+      backdropFilter: scrolled ? "blur(20px)" : "none",
+      borderBottom: scrolled ? "1px solid rgba(255,255,255,.07)" : "none",
+      transition:"background .3s",
+    }}>
+      <div style={{ display:"flex", alignItems:"center", gap:9, cursor:"pointer" }}>
+        <LogoMark size={28} onDark />
+        <span style={{ fontFamily:"'Playfair Display',serif", fontSize:20, color:"#fff", marginLeft:4, letterSpacing:"-.5px", fontWeight:700 }}>
+          ChainBa
+        </span>
       </div>
-      <div style={{ display:"flex", alignItems:"center", gap:"2rem" }}>
-        {["How it works","Circles","Trust scores"].map(l => (
-          <span key={l} className="cb2-navlink" style={{ fontSize:"14px", color:T.textMuted }}>{l}</span>
+      <div style={{ display:"flex", alignItems:"center", gap:"2.5rem" }}>
+        {["How it works","Circles","Trust scores","About"].map(l => (
+          <span key={l} className="nl">{l}</span>
         ))}
       </div>
-      <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
-        <span onClick={onLogin} className="cb2-navlink" style={{ fontSize:"14px", color:T.textMuted }}>Sign in</span>
-        <button className="cb2-btn-primary" style={{ padding:"9px 20px", fontSize:"14px" }} onClick={onConnect}>Connect wallet</button>
+      <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+        <span className="nl" onClick={onLogin}>Sign in</span>
+        <button className="btn-g" style={{ padding:"9px 18px", fontSize:14 }} onClick={onConnect}>Connect wallet</button>
+        <button className="btn-p" style={{ padding:"9px 18px", fontSize:14 }} onClick={onRegister}>Get started</button>
       </div>
     </nav>
   );
 }
 
-function Hero({ onConnect, onRegister }) {
+// ══════════════════════════════════════════════════════════════════════════
+// HERO — Stripe mesh gradient, split layout
+// ══════════════════════════════════════════════════════════════════════════
+function Hero({ onRegister, onConnect }) {
   const r0 = useReveal(0);
-  const r1 = useReveal(120);
-  const r2 = useReveal(240);
-  const r3 = useReveal(360);
-  const r4 = useReveal(480);
+  const r1 = useReveal(100);
+  const r2 = useReveal(220);
+  const r3 = useReveal(340);
+  const r4 = useReveal(460);
+
   return (
-    <section style={{ minHeight:"100vh", display:"flex", flexDirection:"column", justifyContent:"center", padding:"0 2.5rem", paddingTop:"80px", position:"relative", overflow:"hidden" }}>
-      <div style={{ position:"absolute", inset:0, pointerEvents:"none", backgroundImage:`linear-gradient(${T.border} 1px,transparent 1px),linear-gradient(90deg,${T.border} 1px,transparent 1px)`, backgroundSize:"60px 60px", maskImage:"radial-gradient(ellipse 80% 60% at 50% 50%,black 30%,transparent 100%)", WebkitMaskImage:"radial-gradient(ellipse 80% 60% at 50% 50%,black 30%,transparent 100%)" }} />
-      <div style={{ position:"absolute", top:"18%", right:"6%", width:"460px", height:"460px", borderRadius:"50%", background:`radial-gradient(circle,${T.amberFaint} 0%,transparent 70%)`, pointerEvents:"none" }} />
-      <div style={{ position:"absolute", bottom:"14%", left:"4%", width:"300px", height:"300px", borderRadius:"50%", background:`radial-gradient(circle,${T.tealFaint} 0%,transparent 70%)`, pointerEvents:"none" }} />
-      <div style={{ maxWidth:"900px", position:"relative" }}>
-        <div ref={r0} className="reveal" style={{ display:"inline-flex", alignItems:"center", gap:"8px", background:T.amberFaint, border:`1px solid ${T.amber}44`, padding:"6px 14px", borderRadius:"100px", marginBottom:"2rem" }}>
-          <Diamond size={7} color={T.amber} />
-          <span style={{ fontSize:"12px", color:T.amber, fontWeight:"500", letterSpacing:"1.5px", textTransform:"uppercase" }}>Zambian savings · on the blockchain</span>
-        </div>
-        <h1 ref={r1} className="cb2-hl reveal" style={{ fontSize:"clamp(52px,8vw,96px)", color:T.text, marginBottom:"1.5rem" }}>
-          Your Chilimba,<br /><em style={{ color:T.amber, fontStyle:"italic" }}>trustless</em> and<br />on-chain.
-        </h1>
-        <p ref={r2} className="reveal" style={{ fontSize:"18px", color:T.textMuted, maxWidth:"520px", lineHeight:"1.7", marginBottom:"2.5rem", fontWeight:"300" }}>
-          ChainBa brings the rotating savings circle your community already knows to Ethereum. No missed payouts. No broken promises. Just code.
-        </p>
-        <div ref={r3} className="reveal" style={{ display:"flex", gap:"12px", flexWrap:"wrap" }}>
-          <button className="cb2-btn-primary" onClick={onConnect}>Join a circle →</button>
-          <button className="cb2-btn-ghost" onClick={onRegister}>Create account</button>
-        </div>
-        <div ref={r4} className="reveal" style={{ marginTop:"2.5rem", display:"flex", alignItems:"center", gap:"14px" }}>
-          <div style={{ display:"flex" }}>
-            {[T.amber,T.teal,T.coral,"#534AB7"].map((c,i) => (
-              <div key={i} style={{ width:"28px", height:"28px", borderRadius:"50%", background:c, border:`2px solid ${T.bg}`, marginLeft:i===0?0:"-8px" }} />
-            ))}
+    <section style={{
+      minHeight:"100vh", display:"flex", alignItems:"center",
+      padding:"0 3rem", paddingTop:68,
+      background:"linear-gradient(160deg, #020817 0%, #0A0E1A 45%, #0D1B2A 100%)",
+      position:"relative", overflow:"hidden",
+    }}>
+      {/* Mesh gradient */}
+      <div style={{
+        position:"absolute", inset:0, pointerEvents:"none",
+        background:"radial-gradient(ellipse 75% 55% at 65% 35%, rgba(16,185,129,.1) 0%, transparent 60%), radial-gradient(ellipse 55% 45% at 20% 75%, rgba(99,102,241,.09) 0%, transparent 55%), radial-gradient(ellipse 35% 40% at 88% 80%, rgba(239,68,68,.06) 0%, transparent 50%)",
+        backgroundSize:"200% 200%",
+        animation:"mesh 14s ease infinite",
+      }} />
+      {/* Subtle grid */}
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none", backgroundImage:"linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px)", backgroundSize:"72px 72px" }} />
+
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"4rem", alignItems:"center", maxWidth:1080, margin:"0 auto", width:"100%", position:"relative" }}>
+
+        {/* Left */}
+        <div>
+          <div ref={r0} className="cb2-r"><Pill onDark>Decentralized savings · Zambia</Pill></div>
+
+          <h1 ref={r1} className="cb2-hl cb2-r" style={{ fontSize:"clamp(40px,5vw,64px)", color:"#fff", marginBottom:"1.5rem" }}>
+            Financial infrastructure<br />for your{" "}
+            <em style={{ color:C.emerald, fontStyle:"italic" }}>community.</em>
+          </h1>
+
+          <p ref={r2} className="cb2-r" style={{ fontSize:17, color:"rgba(255,255,255,.6)", lineHeight:1.75, marginBottom:"2rem", fontWeight:300, maxWidth:460 }}>
+            ChainBa puts your Chilimba savings circle on the blockchain.
+            Automatic payouts. Transparent contributions.
+            No middleman, no missed payments, no broken trust.
+          </p>
+
+          <div ref={r3} className="cb2-r" style={{ display:"flex", gap:12, flexWrap:"wrap", marginBottom:"1.5rem" }}>
+            <button className="btn-p" onClick={onRegister}>Start your circle →</button>
+            <button className="btn-g" onClick={onConnect}>Connect wallet</button>
           </div>
-          <span style={{ fontSize:"13px", color:T.textDim }}>Join members already saving on-chain</span>
+
+          <div ref={r4} className="cb2-r" style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ width:18, height:18, borderRadius:"50%", background:"rgba(16,185,129,.2)", border:"1px solid rgba(16,185,129,.4)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <span style={{ fontSize:9, color:C.emerald }}>✓</span>
+            </div>
+            <span style={{ fontSize:13, color:"rgba(255,255,255,.35)" }}>
+              No wallet needed — we create one for you when you register
+            </span>
+          </div>
         </div>
+
+        {/* Right — mockup */}
+        <HeroCard />
       </div>
-      <div style={{ position:"absolute", bottom:"2.5rem", left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:"6px" }}>
-        <span style={{ fontSize:"11px", color:T.textDim, letterSpacing:"1.5px", textTransform:"uppercase" }}>Scroll</span>
-        <div style={{ width:"1px", height:"40px", background:`linear-gradient(${T.amber},transparent)` }} />
+
+      <div style={{ position:"absolute", bottom:0, left:0, right:0 }}>
+        <KenteStrip h={5} />
       </div>
     </section>
   );
 }
 
+// ─── Hero dashboard card ───────────────────────────────────────────────────
+function HeroCard() {
+  const ref = useReveal(320);
+  return (
+    <div ref={ref} className="cb2-r d3" style={{ display:"flex", justifyContent:"center" }}>
+      <div style={{
+        width:"100%", maxWidth:360,
+        background:"rgba(255,255,255,.06)", backdropFilter:"blur(28px)",
+        borderRadius:24, border:"1px solid rgba(255,255,255,.1)",
+        boxShadow:"0 40px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08)",
+        padding:"1.5rem",
+        animation:"floatY 4.5s ease-in-out infinite",
+      }}>
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.25rem" }}>
+          <div>
+            <div style={{ fontSize:10, color:"rgba(255,255,255,.35)", marginBottom:3 }}>Welcome back</div>
+            <div style={{ fontSize:15, fontWeight:500, color:"#fff" }}>Frank Bwalya</div>
+          </div>
+          <div style={{ textAlign:"right" }}>
+            <div style={{ fontSize:10, color:"rgba(255,255,255,.35)" }}>Trust score</div>
+            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:22, fontWeight:700, color:C.emerald }}>95</div>
+          </div>
+        </div>
+
+        <KenteStrip h={3} opacity={0.5} />
+
+        {/* Circle */}
+        <div style={{ margin:"1rem 0", background:"rgba(255,255,255,.06)", borderRadius:16, padding:"1rem" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+            <div>
+              <div style={{ fontSize:13, fontWeight:500, color:"#fff" }}>Lusaka Savers</div>
+              <div style={{ fontSize:10, color:"rgba(255,255,255,.35)", marginTop:2 }}>8 members · Round 3 of 8</div>
+            </div>
+            <span style={{ fontSize:10, background:"rgba(16,185,129,.2)", color:C.emerald, padding:"2px 10px", borderRadius:20, fontWeight:500 }}>Active</span>
+          </div>
+          <div style={{ height:4, background:"rgba(255,255,255,.1)", borderRadius:4, overflow:"hidden", marginBottom:6 }}>
+            <div style={{ width:"37%", height:"100%", background:C.emerald, borderRadius:4 }} />
+          </div>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,.3)" }}>Round progress: 37%</div>
+        </div>
+
+        {/* Payout */}
+        <div style={{ background:"linear-gradient(135deg, #064E3B, #065F46)", borderRadius:16, padding:"1rem", marginBottom:"1rem" }}>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,.55)", marginBottom:4 }}>Your next payout</div>
+          <div style={{ fontFamily:"'DM Mono',monospace", fontSize:26, fontWeight:700, color:"#fff", marginBottom:3 }}>3.20 ETH</div>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,.45)" }}>Round 5 · Auto-release in ~18 days</div>
+        </div>
+
+        {/* Members */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{ display:"flex" }}>
+            {["FB","MC","TM","BK","NK"].map((n,i) => (
+              <div key={i} style={{ width:24, height:24, borderRadius:"50%", background:`hsl(${150+i*40},45%,40%)`, border:"2px solid rgba(255,255,255,.08)", marginLeft:i===0?0:-6, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:600, color:"#fff" }}>{n}</div>
+            ))}
+          </div>
+          <span style={{ fontSize:10, color:"rgba(255,255,255,.3)" }}>5 of 8 contributed</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// STATS — dark band, Stripe "backbone of commerce" style
+// ══════════════════════════════════════════════════════════════════════════
 function Stats() {
   const ref = useReveal(0);
   const stats = [
-    { label:"ETH secured on-chain", value:0,   suffix:" ETH", color:T.amber },
-    { label:"Active circles",        value:0,   suffix:"",     color:T.text  },
-    { label:"Payouts delivered",      value:0,   suffix:"",     color:T.teal  },
-    { label:"Starting trust score",  value:100, suffix:"/100", color:T.text  },
+    { val:"100%",  label:"On-chain enforcement",   sub:"Every rule in smart contracts" },
+    { val:"23",    label:"Tests passing",           sub:"Audited Hardhat test suite" },
+    { val:"0",     label:"Missed payouts",          sub:"When all members contribute" },
+    { val:"3",     label:"Smart contracts",         sub:"Factory · Group · Reputation" },
   ];
   return (
-    <section style={{ padding:"5rem 2.5rem", background:T.bgMuted }}>
-      <div ref={ref} className="reveal" style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:"1px", background:T.border, border:`1px solid ${T.border}`, borderRadius:"12px", overflow:"hidden" }}>
-        {stats.map((s,i) => (
-          <div key={i} style={{ background:T.bgMuted, padding:"2rem 1.75rem" }}>
-            <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"38px", fontWeight:"500", color:s.color, marginBottom:"6px" }}>
-              <Counter target={s.value} suffix={s.suffix} />
+    <section style={{ background:"linear-gradient(135deg, #020817, #0A0E1A)", padding:"4rem 3rem" }}>
+      <div ref={ref} className="cb2-r cb2-inner">
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)" }}>
+          {stats.map((s,i) => (
+            <div key={i} className="stat-cell">
+              <div style={{ fontFamily:"'DM Mono',monospace", fontSize:38, fontWeight:700, color:C.emerald, marginBottom:6 }}>{s.val}</div>
+              <div style={{ fontSize:14, fontWeight:500, color:"#fff", marginBottom:4 }}>{s.label}</div>
+              <div style={{ fontSize:12, color:"rgba(255,255,255,.35)" }}>{s.sub}</div>
             </div>
-            <div style={{ fontSize:"13px", color:T.text, fontWeight:"500" }}>{s.label}</div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
-function StepCard({ num, color, title, desc, tag, delay }) {
+// ══════════════════════════════════════════════════════════════════════════
+// HOW IT WORKS — 3 columns, each a separate component (hooks rule)
+// ══════════════════════════════════════════════════════════════════════════
+function Step({ num, color, icon, title, desc, tag, delay }) {
   const ref = useReveal(delay);
   return (
-    <div ref={ref} className="reveal" style={{ display:"flex", gap:"1.5rem", paddingBottom:"3rem" }}>
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", flexShrink:0 }}>
-        <div style={{ width:"40px", height:"40px", borderRadius:"50%", border:`1px solid ${color}44`, display:"flex", alignItems:"center", justifyContent:"center", background:`${color}11` }}>
-          <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"12px", color }}>{num}</span>
+    <div ref={ref} className="cb2-r">
+      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:"1.25rem" }}>
+        <div style={{ width:46, height:46, borderRadius:14, background:`${color}15`, border:`1px solid ${color}28`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+          <span style={{ fontSize:19, color }}>{icon}</span>
         </div>
-        <div style={{ width:"1px", flex:1, background:`linear-gradient(${color}33,transparent)`, marginTop:"8px", minHeight:"32px" }} />
+        <span style={{ fontFamily:"'DM Mono',monospace", fontSize:11, color, fontWeight:600, letterSpacing:"1px" }}>{num}</span>
       </div>
-      <div style={{ paddingTop:"8px" }}>
-        <h3 style={{ fontSize:"20px", fontWeight:"500", color:T.text, marginBottom:"10px", letterSpacing:"-0.3px" }}>{title}</h3>
-        <p style={{ fontSize:"15px", color:T.textMuted, lineHeight:"1.75", marginBottom:"12px", fontWeight:"300" }}>{desc}</p>
-        <code style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color, background:`${color}11`, padding:"4px 10px", borderRadius:"4px", display:"inline-block" }}>{tag}</code>
-      </div>
+      <h3 style={{ fontSize:18, fontWeight:500, color:C.text, marginBottom:10, lineHeight:1.3 }}>{title}</h3>
+      <p style={{ fontSize:14, color:C.textMid, lineHeight:1.75, marginBottom:12, fontWeight:300 }}>{desc}</p>
+      <code style={{ fontFamily:"'DM Mono',monospace", fontSize:10, color, background:`${color}10`, padding:"3px 10px", borderRadius:6, display:"inline-block" }}>{tag}</code>
     </div>
   );
 }
 
 function HowItWorks() {
-  const titleRef = useReveal(0);
-  const steps = [
-    { num:"01", color:T.amber, delay:0,   title:"Create or join a circle",      desc:"Set group size, contribution amount, and cycle length. Deploy on-chain in one transaction. Join an existing circle via invite — no wallet needed to preview.", tag:"ChilimbaFactory.createGroup()" },
-    { num:"02", color:T.teal,  delay:120, title:"Contribute every cycle",        desc:"When your round opens, send your contribution through MetaMask. Every payment is recorded on-chain — permanent, tamper-proof proof of who paid and when.", tag:"ChilimbaGroup.payContribution()" },
-    { num:"03", color:T.coral, delay:240, title:"Payout releases automatically", desc:"When all members have contributed, the contract transfers the full pool to the beneficiary. No middleman, no delay. Reputation updates automatically.", tag:"_releasePayout() → MemberReputation" },
-  ];
+  const h = useReveal(0);
   return (
-    <section style={{ padding:"6rem 2.5rem", maxWidth:"780px", margin:"0 auto" }}>
-      <div ref={titleRef} className="reveal" style={{ marginBottom:"3.5rem" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"1rem" }}>
-          <Diamond size={8} color={T.amber} />
-          <span style={{ fontSize:"11px", color:T.textDim, letterSpacing:"2px", textTransform:"uppercase" }}>The process</span>
+    <section className="cb2-s-alt">
+      <div className="cb2-inner">
+        <div ref={h} className="cb2-r" style={{ textAlign:"center", marginBottom:"3.5rem" }}>
+          <Pill color={C.indigo}>The process</Pill>
+          <h2 className="cb2-hl" style={{ fontSize:"clamp(30px,4vw,48px)", color:C.text }}>
+            Three steps.<br />Zero trust required.
+          </h2>
         </div>
-        <h2 className="cb2-hl" style={{ fontSize:"clamp(32px,5vw,52px)", color:T.text }}>
-          Three steps.<br />Zero trust required.
-        </h2>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"3rem" }}>
+          <Step num="01" color={C.emerald} icon="◈" delay={0}   title="Register with your phone & NRC"      desc="No crypto experience needed. Enter your name, NRC, and phone. We create a secure Ethereum wallet for you automatically — no MetaMask required." tag="Auto wallet creation" />
+          <Step num="02" color={C.indigo}  icon="◉" delay={120} title="Join or start a Chilimba circle"     desc="Set the group size, contribution amount, and cycle. The smart contract enforces every rule. No admin can change terms after the circle launches." tag="ChilimbaFactory.createGroup()" />
+          <Step num="03" color={C.emerald} icon="◇" delay={240} title="Contribute and collect automatically" desc="When your turn comes, the contract transfers funds directly. No waiting. No chasing. The code executes exactly what was agreed, every time." tag="_releasePayout() auto" />
+        </div>
       </div>
-      {steps.map((s,i) => <StepCard key={i} {...s} />)}
     </section>
   );
 }
 
-function FeatureCard({ icon, color, title, desc, delay }) {
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURES — bento grid, each card is its own component
+// ══════════════════════════════════════════════════════════════════════════
+function FeatCard({ wide, color, icon, title, desc, delay }) {
   const ref = useReveal(delay);
   return (
-    <div ref={ref} className="reveal feat-card" style={{ background:T.bgMuted, padding:"2rem", border:"1px solid transparent" }}>
-      <div style={{ fontSize:"22px", marginBottom:"1rem", color }}>{icon}</div>
-      <h3 style={{ fontSize:"16px", fontWeight:"500", color:T.text, marginBottom:"8px" }}>{title}</h3>
-      <p style={{ fontSize:"13px", color:T.textMuted, lineHeight:"1.7", fontWeight:"300" }}>{desc}</p>
+    <div ref={ref} className={`cb2-r feat-card${wide ? " wide" : ""}`}
+      style={{ gridColumn: wide ? "span 2" : "span 1" }}>
+      <div style={{ width:42, height:42, borderRadius:12, background:`${color}12`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:"1rem" }}>
+        <span style={{ fontSize:18, color }}>{icon}</span>
+      </div>
+      <h3 style={{ fontSize:16, fontWeight:500, color:C.text, marginBottom:8 }}>{title}</h3>
+      <p style={{ fontSize:13, color:C.textMid, lineHeight:1.7, fontWeight:300 }}>{desc}</p>
     </div>
   );
 }
 
 function Features() {
-  const titleRef = useReveal(0);
-  const feats = [
-    { icon:"◈", color:T.amber,       delay:0,   title:"On-chain reputation",  desc:"Every payment updates your permanent score via MemberReputation.sol. Your trustworthiness follows you across every circle." },
-    { icon:"◉", color:T.teal,        delay:80,  title:"Automatic payouts",    desc:"No admin holding funds. When all members pay, the contract releases the pool. ReentrancyGuard prevents all exploit vectors." },
-    { icon:"◇", color:T.coral,       delay:160, title:"Hybrid identity",      desc:"Register with name, NRC, and phone. Your identity is keccak256-hashed on-chain — verifiable without exposing personal data." },
-    { icon:"⬡", color:"#8B7FDD",    delay:0,   title:"Emergency controls",   desc:"Group leaders can pause a circle during disputes. OpenZeppelin Pausable keeps funds locked and safe when activity halts." },
-    { icon:"◫", color:T.amberBright, delay:80,  title:"Default protection",   desc:"If a member misses their deadline, the leader flags a default on-chain. Late members lose reputation score permanently." },
-    { icon:"◬", color:T.teal,        delay:160, title:"Open source",          desc:"Every line of contract code is auditable on GitHub. No hidden logic. No admin backdoors. The contract is the rule." },
-  ];
+  const h = useReveal(0);
   return (
-    <section style={{ padding:"6rem 2.5rem", background:T.bgMuted }}>
-      <div ref={titleRef} className="reveal" style={{ marginBottom:"3rem", maxWidth:"560px" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"1rem" }}>
-          <Diamond size={8} color={T.teal} />
-          <span style={{ fontSize:"11px", color:T.textDim, letterSpacing:"2px", textTransform:"uppercase" }}>What makes ChainBa different</span>
+    <section className="cb2-s">
+      <div className="cb2-inner">
+        <div ref={h} className="cb2-r" style={{ marginBottom:"3rem" }}>
+          <Pill>What makes ChainBa different</Pill>
+          <h2 className="cb2-hl" style={{ fontSize:"clamp(28px,3.5vw,44px)", color:C.text, maxWidth:500 }}>
+            Built on trust you<br />can actually verify.
+          </h2>
         </div>
-        <h2 className="cb2-hl" style={{ fontSize:"clamp(28px,4vw,44px)", color:T.text }}>
-          Built on trust you<br />can verify.
-        </h2>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:"1px", background:T.border, border:`1px solid ${T.border}`, borderRadius:"12px", overflow:"hidden" }}>
-        {feats.map((f,i) => <FeatureCard key={i} {...f} />)}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"1.25rem" }}>
+          <FeatCard wide  color={C.emerald} icon="◈" delay={0}   title="On-chain reputation that follows you"   desc="Every payment updates your permanent trust score via MemberReputation.sol. Good actors build verifiable track records visible to every future circle they join." />
+          <FeatCard       color={C.indigo}  icon="◉" delay={80}  title="Automatic payouts"                      desc="Contract releases the pool the moment all members contribute. No admin, no delay, no human risk." />
+          <FeatCard       color={C.emerald} icon="◇" delay={160} title="Hybrid identity"                        desc="NRC and phone hashed via keccak256 on-chain. Verifiable without exposing personal data." />
+          <FeatCard       color={C.indigo}  icon="⬡" delay={0}   title="Emergency controls"                     desc="OpenZeppelin Pausable lets leaders halt disputes. Funds locked until resolved." />
+          <FeatCard       color={C.emerald} icon="◫" delay={80}  title="Default protection"                     desc="Missed deadlines flagged on-chain. Reputation loss is permanent and visible to all." />
+          <FeatCard wide  color={C.indigo}  icon="◬" delay={160} title="Fully open source — every line on GitHub" desc="No hidden logic. No admin backdoors. The smart contracts are public and auditable. Anyone can verify that the rules are exactly what we say they are. The code is the only rule that matters." />
+        </div>
       </div>
     </section>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CHILIMBA STORY — editorial two-col
+// ══════════════════════════════════════════════════════════════════════════
+function MemberCard({ name, score, color, paid, offset }) {
+  const initials = name.split(" ").map(n => n[0]).join("");
+  return (
+    <div className="mem-card" style={{ transform:`translateX(${offset}px)` }}>
+      <div style={{ width:36, height:36, borderRadius:"50%", background:`${color}15`, border:`1px solid ${color}30`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:500, color, flexShrink:0 }}>
+        {initials}
+      </div>
+      <div style={{ flex:1 }}>
+        <div style={{ fontSize:13, fontWeight:500, color:C.text, marginBottom:5 }}>{name}</div>
+        <div style={{ height:4, background:C.border, borderRadius:4, overflow:"hidden" }}>
+          <div style={{ width:`${score}%`, height:"100%", background:color, borderRadius:4 }} />
+        </div>
+      </div>
+      <div style={{ textAlign:"right" }}>
+        <div style={{ fontFamily:"'DM Mono',monospace", fontSize:15, fontWeight:500, color }}>{score}</div>
+        <div style={{ fontSize:10, color: paid ? C.emerald : C.red, marginTop:2 }}>{paid ? "✓ paid" : "pending"}</div>
+      </div>
+    </div>
   );
 }
 
 function TrustSection() {
-  const leftRef  = useReveal(0);
-  const rightRef = useReveal(160);
-  const members = [
-    { name:"Frank Bwalya",    score:95, color:T.teal,  paid:true  },
-    { name:"Mutale Chanda",   score:88, color:T.teal,  paid:true  },
-    { name:"Thandiwe Mwale",  score:72, color:T.amber, paid:true  },
-    { name:"Blessings Kapya", score:60, color:T.coral, paid:false },
-  ];
+  const l = useReveal(0);
+  const r = useReveal(160);
   return (
-    <section style={{ padding:"7rem 2.5rem" }}>
-      <div style={{ maxWidth:"900px", margin:"0 auto", display:"grid", gridTemplateColumns:"1fr 1fr", gap:"5rem", alignItems:"center" }}>
-        <div ref={leftRef} className="reveal">
-          <div style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"1.5rem" }}>
-            <Diamond size={8} color={T.coral} />
-            <span style={{ fontSize:"11px", color:T.textDim, letterSpacing:"2px", textTransform:"uppercase" }}>Why it matters</span>
-          </div>
-          <h2 className="cb2-hl" style={{ fontSize:"clamp(26px,3.5vw,40px)", color:T.text, marginBottom:"1.5rem" }}>
-            The Chilimba is<br />a <em style={{ color:T.amber, fontStyle:"italic" }}>sacred</em> institution.
+    <section className="cb2-s-alt">
+      <div className="cb2-inner" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"5rem", alignItems:"center" }}>
+        <div ref={l} className="cb2-r">
+          <Pill color="#F59E0B">Why it matters</Pill>
+          <h2 className="cb2-hl" style={{ fontSize:"clamp(26px,3.5vw,42px)", color:C.text, marginBottom:"1.5rem" }}>
+            The Chilimba is a{" "}
+            <em style={{ color:"#F59E0B", fontStyle:"italic" }}>sacred</em>{" "}institution.
           </h2>
-          <p style={{ fontSize:"15px", color:T.textMuted, lineHeight:"1.8", marginBottom:"1.5rem", fontWeight:"300" }}>
-            Rotating savings circles have sustained Zambian communities for generations. The problem was never the concept — it was trust. One bad actor could collapse everything.
+          <p style={{ fontSize:15, color:C.textMid, lineHeight:1.8, marginBottom:"1.25rem", fontWeight:300 }}>
+            Rotating savings circles have sustained Zambian communities for generations.
+            The problem was never the concept — it was trust.
+            One bad actor could collapse everything.
           </p>
-          <p style={{ fontSize:"15px", color:T.textMuted, lineHeight:"1.8", fontWeight:"300" }}>
-            ChainBa replaces the human trust layer with verifiable code. Stakes locked in a contract. Payouts automatic. Defaults recorded permanently on-chain.
+          <p style={{ fontSize:15, color:C.textMid, lineHeight:1.8, fontWeight:300 }}>
+            ChainBa replaces that human trust layer with verifiable code.
+            Stakes locked. Payouts automatic. Every default recorded permanently on-chain.
           </p>
         </div>
-        <div ref={rightRef} className="reveal" style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
-          {members.map((m,i) => (
-            <div key={i} style={{ background:T.bgCard, border:`1px solid ${T.border}`, borderRadius:"10px", padding:"12px 16px", display:"flex", alignItems:"center", gap:"12px", transform:`translateX(${i*6}px)` }}>
-              <div style={{ width:"34px", height:"34px", borderRadius:"50%", background:`${m.color}22`, border:`1px solid ${m.color}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"11px", fontWeight:"500", color:m.color, flexShrink:0 }}>
-                {m.name.split(" ").map(n=>n[0]).join("")}
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:"13px", fontWeight:"500", color:T.text, marginBottom:"5px" }}>{m.name}</div>
-                <div style={{ height:"3px", background:T.border, borderRadius:"2px", overflow:"hidden" }}>
-                  <div style={{ width:`${m.score}%`, height:"100%", background:m.color }} />
-                </div>
-              </div>
-              <div style={{ textAlign:"right" }}>
-                <div style={{ fontFamily:"'DM Mono',monospace", fontSize:"14px", fontWeight:"500", color:m.color }}>{m.score}</div>
-                <div style={{ fontSize:"10px", color:m.paid?T.teal:T.coral, marginTop:"2px" }}>{m.paid?"✓ paid":"pending"}</div>
-              </div>
-            </div>
-          ))}
+        <div ref={r} className="cb2-r" style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          <MemberCard name="Frank Bwalya"    score={95} color={C.emerald} paid offset={0} />
+          <MemberCard name="Mutale Chanda"   score={88} color={C.emerald} paid offset={5} />
+          <MemberCard name="Thandiwe Mwale"  score={72} color={C.indigo}  paid offset={10} />
+          <MemberCard name="Blessings Kapya" score={60} color={C.red}     paid={false} offset={15} />
         </div>
       </div>
     </section>
   );
 }
 
-function CTASection({ onConnect, onRegister }) {
+// ══════════════════════════════════════════════════════════════════════════
+// NO WALLET — removes biggest user objection
+// ══════════════════════════════════════════════════════════════════════════
+function PathCard({ emoji, accentColor, label, title, desc, btnLabel, btnClass, onClick }) {
   const ref = useReveal(0);
   return (
-    <section style={{ padding:"6rem 2.5rem", background:T.bgMuted }}>
-      <div ref={ref} className="reveal" style={{ maxWidth:"640px", margin:"0 auto", textAlign:"center" }}>
-        <div style={{ display:"flex", justifyContent:"center", gap:"6px", marginBottom:"1.5rem" }}>
-          {[T.amber,T.teal,T.coral,T.amberBright].map((c,i) => <Diamond key={i} size={10} color={c} />)}
+    <div ref={ref} className="cb2-r path-card">
+      <div style={{ width:46, height:46, borderRadius:14, background:`${accentColor}12`, border:`1px solid ${accentColor}22`, display:"flex", alignItems:"center", justifyContent:"center", marginBottom:"1.25rem", fontSize:22 }}>
+        {emoji}
+      </div>
+      <div style={{ fontSize:11, fontWeight:500, color:accentColor, marginBottom:8, textTransform:"uppercase", letterSpacing:"1px" }}>{label}</div>
+      <h3 style={{ fontSize:18, fontWeight:500, color:C.text, marginBottom:10 }}>{title}</h3>
+      <p style={{ fontSize:13, color:C.textMid, lineHeight:1.7, marginBottom:"1.5rem", fontWeight:300 }}>{desc}</p>
+      <button className={btnClass} onClick={onClick} style={{ width:"100%", padding:12 }}>{btnLabel}</button>
+    </div>
+  );
+}
+
+function NoWallet({ onRegister, onConnect }) {
+  const h = useReveal(0);
+  return (
+    <section className="cb2-s">
+      <div className="cb2-inner">
+        <div ref={h} className="cb2-r" style={{ textAlign:"center", marginBottom:"3rem" }}>
+          <Pill color={C.indigo}>No experience needed</Pill>
+          <h2 className="cb2-hl" style={{ fontSize:"clamp(28px,4vw,46px)", color:C.text, marginBottom:"1rem" }}>
+            New to crypto? That's fine.
+          </h2>
+          <p style={{ fontSize:16, color:C.textMid, lineHeight:1.75, maxWidth:520, margin:"0 auto", fontWeight:300 }}>
+            ChainBa works whether you've used crypto before or never heard of a wallet.
+          </p>
         </div>
-        <h2 className="cb2-hl" style={{ fontSize:"clamp(32px,5vw,56px)", color:T.text, marginBottom:"1.25rem" }}>
-          Your community<br />deserves better.
-        </h2>
-        <p style={{ fontSize:"16px", color:T.textMuted, lineHeight:"1.7", marginBottom:"2.5rem", fontWeight:"300" }}>
-          Start a circle today. No banks. No middlemen. No broken trust. Just your community and the chain.
-        </p>
-        <div style={{ display:"flex", gap:"12px", justifyContent:"center", flexWrap:"wrap" }}>
-          <button className="cb2-btn-primary" onClick={onConnect} style={{ padding:"14px 32px", fontSize:"16px" }}>Connect wallet →</button>
-          <button className="cb2-btn-ghost" onClick={onRegister} style={{ padding:"14px 32px", fontSize:"16px" }}>Create account</button>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"1.5rem", maxWidth:680, margin:"0 auto" }}>
+          <PathCard
+            emoji="🆕" accentColor={C.emerald} label="New to crypto"
+            title="Register with your phone"
+            desc="Enter your name, NRC, and phone. We create a secure Ethereum wallet for you automatically. No MetaMask, no seed phrases, no downloads."
+            btnLabel="Create account →" btnClass="btn-dk" onClick={onRegister}
+          />
+          <PathCard
+            emoji="🦊" accentColor={C.indigo} label="Have MetaMask"
+            title="Connect your wallet"
+            desc="Already have MetaMask? Connect directly and go straight to your dashboard. No registration required whatsoever."
+            btnLabel="Connect wallet →" btnClass="btn-ot" onClick={onConnect}
+          />
         </div>
       </div>
     </section>
   );
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// FINAL CTA
+// ══════════════════════════════════════════════════════════════════════════
+function CTA({ onRegister, onConnect }) {
+  const ref = useReveal(0);
+  return (
+    <section className="cb2-s-dark">
+      <div style={{ position:"absolute", inset:0, pointerEvents:"none", background:"radial-gradient(ellipse 70% 60% at 50% 50%, rgba(16,185,129,.08) 0%, transparent 65%)" }} />
+      <KenteStrip h={4} opacity={0.5} />
+      <div ref={ref} className="cb2-r" style={{ maxWidth:580, margin:"3rem auto 0", textAlign:"center", position:"relative" }}>
+        <h2 className="cb2-hl" style={{ fontSize:"clamp(32px,5vw,54px)", color:"#fff", marginBottom:"1rem" }}>
+          Start your circle today.
+        </h2>
+        <p style={{ fontSize:16, color:"rgba(255,255,255,.5)", lineHeight:1.75, marginBottom:"2.5rem", fontWeight:300 }}>
+          Join the community saving smarter — together.<br />
+          No banks. No middlemen. No broken trust.
+        </p>
+        <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
+          <button className="btn-p" onClick={onRegister} style={{ padding:"15px 36px", fontSize:16 }}>Create account →</button>
+          <button className="btn-g" onClick={onConnect}  style={{ padding:"15px 36px", fontSize:16 }}>Connect wallet</button>
+        </div>
+        <p style={{ marginTop:"1.25rem", fontSize:12, color:"rgba(255,255,255,.2)" }}>
+          Free to join · No crypto knowledge needed · Secured by Ethereum
+        </p>
+      </div>
+      <div style={{ marginTop:"3rem" }}><KenteStrip h={4} reverse opacity={0.4} /></div>
+    </section>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FOOTER
+// ══════════════════════════════════════════════════════════════════════════
 function Footer() {
   return (
-    <footer style={{ padding:"2.5rem", borderTop:`1px solid ${T.border}` }}>
-      <KenteStrip opacity={0.4} />
-      <div style={{ marginTop:"2rem", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:"1rem" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-          <Diamond size={10} color={T.amber} />
-          <span style={{ fontFamily:"'Playfair Display',serif", fontSize:"16px", color:T.textMuted }}>ChainBa</span>
+    <footer style={{ background:"#020817", borderTop:"1px solid rgba(255,255,255,.05)", padding:"3rem" }}>
+      <div style={{ maxWidth:1080, margin:"0 auto" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:"2rem", marginBottom:"2rem" }}>
+          <div>
+            <div style={{ display:"flex", alignItems:"center", gap:9, marginBottom:10 }}>
+              <LogoMark size={22} onDark />
+              <span style={{ fontFamily:"'Playfair Display',serif", fontSize:17, color:"rgba(255,255,255,.6)" }}>ChainBa</span>
+            </div>
+            <p style={{ fontSize:12, color:"rgba(255,255,255,.25)", lineHeight:1.6, maxWidth:200 }}>
+              Decentralized Chilimba savings on Ethereum. Built by Chain Keepers.
+            </p>
+          </div>
+          <div style={{ display:"flex", gap:"3rem", flexWrap:"wrap" }}>
+            {[
+              { g:"Product",   ls:["How it works","Circles","Trust scores","Security"] },
+              { g:"Resources", ls:["GitHub","Report","Demo","ZCAS"] },
+            ].map(({ g, ls }) => (
+              <div key={g}>
+                <div style={{ fontSize:10, color:"rgba(255,255,255,.2)", fontWeight:500, letterSpacing:"1.2px", textTransform:"uppercase", marginBottom:12 }}>{g}</div>
+                {ls.map(l => (
+                  <div key={l} style={{ fontSize:13, color:"rgba(255,255,255,.35)", marginBottom:8, cursor:"pointer", transition:"color .2s" }}
+                    onMouseEnter={e=>e.target.style.color="#fff"}
+                    onMouseLeave={e=>e.target.style.color="rgba(255,255,255,.35)"}>{l}</div>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
-        <span style={{ fontSize:"12px", color:T.textDim }}>© 2026 ChainBa — Chain Keepers · CCS4711 · ZCAS University</span>
-        <div style={{ display:"flex", gap:"1.5rem" }}>
-          {["GitHub","Report","Demo"].map(l => (
-            <span key={l} className="cb2-navlink" style={{ fontSize:"12px", color:T.textDim }}>{l}</span>
-          ))}
+        <div style={{ paddingTop:"1.5rem", borderTop:"1px solid rgba(255,255,255,.05)", display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:"1rem" }}>
+          <span style={{ fontSize:12, color:"rgba(255,255,255,.18)" }}>© 2026 ChainBa — Chain Keepers · CCS4711 · ZCAS University</span>
+          <span style={{ fontSize:12, color:"rgba(255,255,255,.18)" }}>Built on Ethereum · Open Source</span>
         </div>
       </div>
     </footer>
   );
 }
 
-function StickyBar({ onConnect }) {
+// ══════════════════════════════════════════════════════════════════════════
+// STICKY BAR
+// ══════════════════════════════════════════════════════════════════════════
+function StickyBar({ onRegister }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
-    const fn = () => setShow(window.scrollY > window.innerHeight * 0.4);
+    const fn = () => setShow(window.scrollY > window.innerHeight * .7);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
   if (!show) return null;
   return (
-    <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:99, background:"rgba(10,10,8,0.96)", backdropFilter:"blur(14px)", borderTop:`1px solid ${T.border}`, padding:"14px 2.5rem", display:"flex", alignItems:"center", justifyContent:"space-between", animation:"slideUp .4s cubic-bezier(.22,1,.36,1)", gap:"1rem", flexWrap:"wrap" }}>
+    <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:99, background:"rgba(2,8,23,.97)", backdropFilter:"blur(20px)", borderTop:"1px solid rgba(255,255,255,.06)", padding:"14px 3rem", display:"flex", alignItems:"center", justifyContent:"space-between", animation:"su .4s cubic-bezier(.22,1,.36,1)", gap:"1rem", flexWrap:"wrap" }}>
       <div>
-        <div style={{ fontSize:"14px", fontWeight:"500", color:T.text }}>Ready to start your circle?</div>
-        <div style={{ fontSize:"12px", color:T.textMuted }}>Connect your wallet — it takes 30 seconds.</div>
+        <div style={{ fontSize:14, fontWeight:500, color:"#fff" }}>Ready to start your circle?</div>
+        <div style={{ fontSize:12, color:"rgba(255,255,255,.35)" }}>No wallet needed — register in 60 seconds.</div>
       </div>
-      <button className="cb2-btn-primary" onClick={onConnect}>Join a circle →</button>
+      <button className="btn-p" onClick={onRegister}>Create account →</button>
     </div>
   );
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// EXPORT
+// ══════════════════════════════════════════════════════════════════════════
 export default function LandingV2({ onConnect, onRegister, onLogin }) {
-  const handleConnect = onConnect || (async () => {
+  const hc = onConnect || (async () => {
     if (!window.ethereum) return alert("Please install MetaMask.");
     try { await window.ethereum.request({ method:"eth_requestAccounts" }); }
-    catch (err) { if (err.code !== 4001) console.error(err); }
+    catch (e) { if (e.code !== 4001) console.error(e); }
   });
+  const hr = onRegister || (() => {});
+
   return (
     <div className="cb2">
-      <Navbar onConnect={handleConnect} onLogin={onLogin} />
-      <Hero onConnect={handleConnect} onRegister={onRegister} />
-      <KenteStrip />
+      <Navbar onLogin={onLogin} onRegister={hr} onConnect={hc} />
+      <Hero onRegister={hr} onConnect={hc} />
       <Stats />
       <HowItWorks />
-      <KenteStrip />
       <Features />
       <TrustSection />
-      <CTASection onConnect={handleConnect} onRegister={onRegister} />
+      <NoWallet onRegister={hr} onConnect={hc} />
+      <CTA onRegister={hr} onConnect={hc} />
       <Footer />
-      <StickyBar onConnect={handleConnect} />
+      <StickyBar onRegister={hr} />
     </div>
   );
 }
