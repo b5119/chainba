@@ -1,0 +1,4 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: Arial, sans-serif; background-color: #0f172a; color: #e2e8f0; }
+button { cursor: pointer; }
+input:focus, select:focus { outline: 2px solid #f59e0b; }

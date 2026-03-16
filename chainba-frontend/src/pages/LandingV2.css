@@ -1,0 +1,112 @@
+
+/* ── Base ──────────────────────────────────────────────────────────────── */
+.cb2 {
+  font-family: 'DM Sans', sans-serif;
+  background: #0A0A08;
+  color: #F0EDE6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.cb2 * { box-sizing: border-box; }
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+.cb2-hl {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -2px;
+  margin: 0;
+}
+
+/* ── Scroll reveal — Brex/Wealthsimple style staggered fade-up ───────────
+   Elements start invisible+shifted. JS adds .in when entering viewport.   */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger delays for sibling reveals */
+.reveal.d1 { transition-delay: 0.1s; }
+.reveal.d2 { transition-delay: 0.22s; }
+.reveal.d3 { transition-delay: 0.36s; }
+.reveal.d4 { transition-delay: 0.52s; }
+
+/* ── Kente animation ────────────────────────────────────────────────────── */
+@keyframes kenteScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ── Diamond pulse (logo accent) ────────────────────────────────────────── */
+@keyframes diamondPulse {
+  0%, 100% { opacity: 0.7; transform: rotate(45deg) scale(1); }
+  50%       { opacity: 1;   transform: rotate(45deg) scale(1.12); }
+}
+
+/* ── Sticky bar slide up ────────────────────────────────────────────────── */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.cb2-btn-primary {
+  background: #BA7517;
+  color: #0A0A08;
+  border: none;
+  padding: 13px 28px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.cb2-btn-primary:hover {
+  background: #EF9F27;
+  transform: translateY(-1px);
+}
+
+.cb2-btn-ghost {
+  background: transparent;
+  color: #F0EDE6;
+  border: 1px solid rgba(240,237,230,0.12);
+  padding: 13px 28px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.cb2-btn-ghost:hover {
+  border-color: rgba(240,237,230,0.28);
+  transform: translateY(-1px);
+}
+
+/* ── Nav links ──────────────────────────────────────────────────────────── */
+.cb2-navlink {
+  cursor: pointer;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+.cb2-navlink:hover { color: #F0EDE6 !important; }
+
+/* ── Feature cards ──────────────────────────────────────────────────────── */
+.feat-card {
+  transition: border-color 0.25s ease,
+              transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.feat-card:hover {
+  border-color: rgba(240,237,230,0.18) !important;
+  transform: translateY(-4px);
+}
