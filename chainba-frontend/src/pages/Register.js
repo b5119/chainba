@@ -1,5 +1,6 @@
 import { useState } from "react";
 import BASE_URL from "../api";
+import "./Register.css";
 
 export default function Register({ onLogin }) {
   const [form, setForm] = useState({ fullName: "", phone: "", nrcNumber: "", password: "", confirm: "" });
@@ -61,48 +62,103 @@ export default function Register({ onLogin }) {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #0f172a 0%, #1e3a6e 100%)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-      <div style={{ background: "#1e293b", borderRadius: "16px", padding: "40px", width: "100%", maxWidth: "440px", boxShadow: "0 25px 50px rgba(0,0,0,0.5)" }}>
-        <div style={{ textAlign: "center", marginBottom: "28px" }}>
-          <div style={{ fontSize: "48px", marginBottom: "8px" }}>🪙</div>
-          <h1 style={{ color: "#f59e0b", fontSize: "28px", fontWeight: "bold", margin: 0 }}>ChainBa</h1>
-          <p style={{ color: "#94a3b8", marginTop: "8px", margin: "8px 0 0" }}>Create your account</p>
-        </div>
-
-        {error && (
-          <div style={{ background: "#7f1d1d", color: "#fca5a5", padding: "14px", borderRadius: "8px", marginBottom: "16px", fontSize: "14px", textAlign: "center", lineHeight: 1.5 }}>
-            ⚠ {error}
+    <div className="registerSplit">
+      <aside className="registerLeft" aria-label="ChainBa introduction">
+        <div className="registerLeftInner">
+          <div className="registerBrand" aria-label="ChainBa">
+            <span className="registerLogo" aria-hidden="true">
+              <span className="registerDiamond registerDiamondA" />
+              <span className="registerDiamond registerDiamondB" />
+            </span>
+            <span className="registerBrandName">ChainBa</span>
           </div>
-        )}
 
-        {fields.map(f => (
-          <div key={f.name} style={{ marginBottom: "14px" }}>
-            <label style={{ color: "#94a3b8", fontSize: "13px", display: "block", marginBottom: "6px" }}>{f.label}</label>
-            <input
-              name={f.name} type={f.type} value={form[f.name]} onChange={handle}
-              style={{ width: "100%", background: "#0f172a", border: fieldErrors[f.name] ? "1px solid #ef4444" : "1px solid #334155", borderRadius: "8px", padding: "12px", color: "#f1f5f9", fontSize: "15px", boxSizing: "border-box", outline: "none" }}
-            />
-            {fieldErrors[f.name]
-              ? <p style={{ color: "#ef4444", fontSize: "12px", margin: "4px 0 0" }}>⚠ {fieldErrors[f.name]}</p>
-              : <p style={{ color: "#475569", fontSize: "11px", margin: "4px 0 0" }}>{f.hint}</p>
-            }
+          <h1 className="registerHeadline">Join your first circle.</h1>
+          <p className="registerSubtext">
+            Community savings on the blockchain. Automatic. Transparent. Trustless.
+          </p>
+
+          <div className="registerTrustBadge" role="note">
+            <span className="registerCheck" aria-hidden="true">✓</span>
+            <span>No wallet needed — we create one for you</span>
           </div>
-        ))}
-
-        <button onClick={submit} disabled={loading}
-          style={{ width: "100%", background: loading ? "#64748b" : "#f59e0b", color: "#0f172a", border: "none", borderRadius: "8px", padding: "14px", fontSize: "16px", fontWeight: "bold", cursor: loading ? "not-allowed" : "pointer", marginTop: "8px" }}>
-          {loading ? "Creating Account..." : "Create Account"}
-        </button>
-
-        <div style={{ textAlign: "center", marginTop: "20px" }}>
-          <span style={{ color: "#94a3b8", fontSize: "14px" }}>Already have an account? </span>
-          <button onClick={() => onLogin(null, "login")} style={{ background: "none", border: "none", color: "#f59e0b", cursor: "pointer", fontSize: "14px", fontWeight: "bold" }}>Login</button>
         </div>
+      </aside>
 
-        <div style={{ marginTop: "20px", padding: "12px", background: "#0f172a", borderRadius: "8px", textAlign: "center" }}>
-          <p style={{ color: "#475569", fontSize: "12px", margin: 0 }}>🔒 A blockchain wallet is automatically created for you</p>
+      <main className="registerRight" aria-label="Create account">
+        <div className="registerFormWrap">
+          <div className="registerFormHeader">
+            <h2 className="registerFormTitle">Create your account</h2>
+          </div>
+
+          {error && (
+            <div className="registerGlobalError" role="alert">
+              {error}
+            </div>
+          )}
+
+          <div className="registerForm">
+            {fields.map((f) => {
+              const hint =
+                f.name === "nrcNumber" ? "Format: 123456/78/9" : f.hint;
+              const hasError = Boolean(fieldErrors[f.name]);
+
+              return (
+                <div key={f.name} className="registerField">
+                  <label className="registerLabel" htmlFor={`register-${f.name}`}>
+                    {f.label}
+                  </label>
+                  <input
+                    id={`register-${f.name}`}
+                    className={`registerInput ${hasError ? "registerInputError" : ""}`}
+                    name={f.name}
+                    type={f.type}
+                    value={form[f.name]}
+                    onChange={handle}
+                    autoComplete={
+                      f.name === "password"
+                        ? "new-password"
+                        : f.name === "confirm"
+                          ? "new-password"
+                          : f.name === "phone"
+                            ? "tel"
+                            : "name"
+                    }
+                    inputMode={f.name === "phone" ? "tel" : undefined}
+                  />
+
+                  {hasError ? (
+                    <p className="registerFieldError" role="alert">
+                      {fieldErrors[f.name]}
+                    </p>
+                  ) : (
+                    <p className="registerHint">{hint}</p>
+                  )}
+                </div>
+              );
+            })}
+
+            <button
+              className="registerSubmit"
+              onClick={submit}
+              disabled={loading}
+            >
+              {loading ? "Creating account..." : "Create account"}
+            </button>
+
+            <div className="registerFooter">
+              <span>Already have an account? </span>
+              <button
+                type="button"
+                className="registerSignIn"
+                onClick={() => onLogin(null, "login")}
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

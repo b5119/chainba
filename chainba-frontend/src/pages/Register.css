@@ -1,0 +1,260 @@
+.registerSplit{
+  min-height:100vh;
+  display:flex;
+  background:#ffffff;
+  font-family:"DM Sans", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+.registerLeft{
+  width:40%;
+  background:#0A0E1A;
+  color:#F8FAFC;
+  display:flex;
+  align-items:center;
+  padding:64px 56px;
+}
+
+.registerLeftInner{
+  width:100%;
+  max-width:520px;
+}
+
+.registerBrand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:28px;
+}
+
+.registerLogo{
+  position:relative;
+  width:28px;
+  height:18px;
+  display:inline-block;
+}
+
+.registerDiamond{
+  position:absolute;
+  width:12px;
+  height:12px;
+  transform:rotate(45deg);
+  border-radius:3px;
+  background:linear-gradient(135deg, rgba(99,102,241,1) 0%, rgba(16,185,129,1) 100%);
+  box-shadow:0 10px 24px rgba(0,0,0,0.35);
+}
+
+.registerDiamondA{ left:0; top:3px; opacity:0.95; }
+.registerDiamondB{ left:12px; top:0; opacity:0.9; }
+
+.registerBrandName{
+  font-family:"Playfair Display", serif;
+  font-weight:700;
+  letter-spacing:-1px;
+  font-size:22px;
+  line-height:1;
+}
+
+.registerHeadline{
+  font-family:"Playfair Display", serif;
+  font-weight:700;
+  letter-spacing:-1.5px;
+  font-size:44px;
+  line-height:1.08;
+  margin:0 0 16px;
+  color:#F8FAFC;
+}
+
+.registerSubtext{
+  margin:0 0 22px;
+  color:rgba(248,250,252,0.82);
+  font-weight:300;
+  font-size:15px;
+  line-height:1.6;
+  max-width:44ch;
+}
+
+.registerTrustBadge{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  border-radius:14px;
+  background:rgba(248,250,252,0.06);
+  border:1px solid rgba(248,250,252,0.12);
+  color:rgba(248,250,252,0.9);
+  font-size:13px;
+  line-height:1.35;
+}
+
+.registerCheck{
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(16,185,129,0.16);
+  border:1px solid rgba(16,185,129,0.4);
+  color:#10B981;
+  font-weight:700;
+  flex:0 0 auto;
+}
+
+.registerRight{
+  width:60%;
+  background:#ffffff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:64px 28px;
+}
+
+.registerFormWrap{
+  width:100%;
+  max-width:420px;
+}
+
+.registerFormHeader{
+  margin-bottom:18px;
+}
+
+.registerFormTitle{
+  margin:0;
+  font-family:"Playfair Display", serif;
+  font-weight:700;
+  letter-spacing:-1px;
+  font-size:28px;
+  color:#0F172A;
+}
+
+.registerGlobalError{
+  background:#FEF2F2;
+  border:1px solid #FECACA;
+  color:#991B1B;
+  border-radius:12px;
+  padding:12px 14px;
+  font-size:14px;
+  line-height:1.45;
+  margin-bottom:16px;
+}
+
+.registerForm{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.registerField{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.registerLabel{
+  font-size:13px;
+  font-weight:500;
+  color:#334155;
+}
+
+.registerInput{
+  width:100%;
+  box-sizing:border-box;
+  border-radius:10px;
+  border:1px solid #E2E8F0;
+  padding:12px 16px;
+  font-size:14px;
+  color:#0F172A;
+  background:#ffffff;
+  outline:none;
+  transition:border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.registerInput:focus{
+  border-color:rgba(99,102,241,0.55);
+  box-shadow:0 0 0 4px rgba(99,102,241,0.14);
+}
+
+.registerInputError{
+  border-color:#FCA5A5;
+}
+
+.registerInputError:focus{
+  border-color:#EF4444;
+  box-shadow:0 0 0 4px rgba(239,68,68,0.14);
+}
+
+.registerHint{
+  margin:0;
+  font-size:12px;
+  color:#64748B;
+}
+
+.registerFieldError{
+  margin:0;
+  font-size:12px;
+  color:#EF4444;
+  line-height:1.35;
+}
+
+.registerSubmit{
+  width:100%;
+  border:none;
+  border-radius:10px;
+  padding:12px 16px;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  background:#10B981;
+  color:#ffffff;
+  transition:transform 120ms ease, filter 120ms ease, opacity 120ms ease;
+}
+
+.registerSubmit:hover{
+  filter:brightness(0.98);
+  transform:translateY(-1px);
+}
+
+.registerSubmit:active{
+  transform:translateY(0);
+}
+
+.registerSubmit:disabled{
+  opacity:0.65;
+  cursor:not-allowed;
+  transform:none;
+}
+
+.registerFooter{
+  margin-top:2px;
+  font-size:14px;
+  color:#64748B;
+  text-align:center;
+}
+
+.registerSignIn{
+  background:none;
+  border:none;
+  padding:0;
+  margin:0;
+  color:#10B981;
+  font-weight:600;
+  cursor:pointer;
+  font-size:14px;
+}
+
+.registerSignIn:hover{
+  text-decoration:underline;
+}
+
+@media (max-width: 900px){
+  .registerSplit{ flex-direction:column; }
+  .registerLeft, .registerRight{ width:100%; }
+  .registerLeft{ padding:44px 24px; }
+  .registerRight{ padding:44px 24px; }
+  .registerHeadline{ font-size:38px; }
+}
+
+@media (max-width: 420px){
+  .registerHeadline{ font-size:34px; }
+}
+
