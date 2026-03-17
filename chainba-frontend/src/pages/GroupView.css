@@ -1,0 +1,549 @@
+.gvPage{
+  min-height:100vh;
+  background:#F8FAFC;
+  color:#0F172A;
+  font-family:"DM Sans", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+.gvNav{
+  position:sticky;
+  top:0;
+  z-index:100;
+  height:64px;
+  background:#ffffff;
+  border-bottom:1px solid #E2E8F0;
+}
+
+.gvNavInner{
+  height:100%;
+  max-width:1080px;
+  margin:0 auto;
+  padding:0 2rem;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+
+.gvNavLeft{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  min-width:0;
+}
+
+.gvBack{
+  background:none;
+  border:none;
+  padding:0;
+  margin:0;
+  color:#334155;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  white-space:nowrap;
+}
+
+.gvBack:hover{ text-decoration:underline; }
+
+.gvBrand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  background:none;
+  border:none;
+  padding:0;
+  cursor:pointer;
+  min-width:0;
+}
+
+.gvLogo{
+  position:relative;
+  width:30px;
+  height:20px;
+  display:inline-block;
+  flex:0 0 auto;
+}
+
+.gvDiamond{
+  position:absolute;
+  transform:rotate(45deg);
+  border-radius:3px;
+}
+
+.gvDiamondA{
+  left:0;
+  top:3px;
+  width:16px;
+  height:16px;
+  opacity:0.95;
+  background:linear-gradient(135deg, rgba(99,102,241,1) 0%, rgba(16,185,129,1) 100%);
+}
+
+.gvDiamondB{
+  left:16px;
+  top:6px;
+  width:10px;
+  height:10px;
+  opacity:0.92;
+  background:linear-gradient(135deg, rgba(245,158,11,1) 0%, rgba(16,185,129,1) 100%);
+}
+
+.gvBrandName{
+  font-family:"Playfair Display", serif;
+  font-weight:700;
+  letter-spacing:-1px;
+  font-size:20px;
+  color:#0F172A;
+  white-space:nowrap;
+}
+
+.gvNavRight{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.gvWallet{
+  font-family:"DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12px;
+  color:#64748B;
+  background:#F8FAFC;
+  border:1px solid #E2E8F0;
+  border-radius:999px;
+  padding:7px 10px;
+}
+
+.gvMain{
+  max-width:900px;
+  margin:0 auto;
+  padding:2rem;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.gvCard{
+  background:#ffffff;
+  border:1px solid #E2E8F0;
+  border-radius:20px;
+  padding:1.5rem;
+  box-shadow:0 2px 8px rgba(15,23,42,0.04);
+}
+
+.gvHeroTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:14px;
+}
+
+.gvTitle{
+  margin:0 0 8px;
+  font-family:"Playfair Display", serif;
+  font-weight:700;
+  letter-spacing:-1px;
+  font-size:28px;
+  color:#0F172A;
+}
+
+.gvSubRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 14px;
+  align-items:center;
+}
+
+.gvSubText{
+  font-size:13px;
+  color:#64748B;
+  font-weight:500;
+}
+
+.gvBadge{
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+  border:1px solid transparent;
+}
+
+.gvBadge-active{
+  background:rgba(16,185,129,0.12);
+  color:#10B981;
+  border-color:rgba(16,185,129,0.22);
+}
+
+.gvBadge-open{
+  background:rgba(99,102,241,0.10);
+  color:#6366F1;
+  border-color:rgba(99,102,241,0.22);
+}
+
+.gvBadge-completed{
+  background:rgba(100,116,139,0.12);
+  color:#64748B;
+  border-color:rgba(100,116,139,0.24);
+}
+
+.gvHeroStats{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:12px;
+  padding-top:14px;
+  border-top:1px solid #E2E8F0;
+}
+
+.gvStatLabel{
+  font-size:12px;
+  color:#64748B;
+  font-weight:500;
+  margin-bottom:6px;
+}
+
+.gvStatValue{
+  font-size:13px;
+  color:#334155;
+  font-weight:700;
+}
+
+.gvSectionTop{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.gvSectionTitle{
+  margin:0;
+  font-family:"Playfair Display", serif;
+  font-weight:700;
+  letter-spacing:-1px;
+  font-size:18px;
+  color:#0F172A;
+}
+
+.gvSectionMeta{
+  font-size:13px;
+  color:#64748B;
+  font-weight:500;
+}
+
+.gvProgressBar{
+  width:100%;
+  height:8px;
+  border-radius:4px;
+  background:#E2E8F0;
+  overflow:hidden;
+}
+
+.gvProgressFill{
+  height:100%;
+  background:#10B981;
+}
+
+.gvProgressText{
+  margin-top:10px;
+  font-size:13px;
+  color:#64748B;
+}
+
+.gvPayout{
+  margin-top:14px;
+  padding:14px;
+  border-radius:16px;
+  border:1px solid #E2E8F0;
+  background:#F8FAFC;
+}
+
+.gvPayoutLabel{
+  font-size:12px;
+  color:#64748B;
+  font-weight:600;
+  margin-bottom:6px;
+}
+
+.gvPayoutValue{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:700;
+  color:#0F172A;
+}
+
+.gvPayoutYou{
+  font-size:12px;
+  font-weight:700;
+  color:#10B981;
+  border:1px solid rgba(16,185,129,0.22);
+  background:rgba(16,185,129,0.10);
+  border-radius:999px;
+  padding:4px 10px;
+}
+
+.gvPayoutSub{
+  margin-top:6px;
+  font-size:13px;
+  color:#64748B;
+  font-weight:500;
+}
+
+.gvContribute{
+  margin-top:14px;
+  border-top:1px solid #E2E8F0;
+  padding-top:14px;
+}
+
+.gvContributeRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.gvContributeLabel{
+  font-size:13px;
+  color:#64748B;
+  font-weight:600;
+}
+
+.gvStatus{
+  font-size:12px;
+  font-weight:800;
+  border-radius:999px;
+  padding:6px 10px;
+  border:1px solid transparent;
+}
+
+.gvStatus-paid{ color:#10B981; background:rgba(16,185,129,0.10); border-color:rgba(16,185,129,0.22); }
+.gvStatus-pending{ color:#F59E0B; background:rgba(245,158,11,0.10); border-color:rgba(245,158,11,0.22); }
+.gvStatus-late{ color:#F59E0B; background:rgba(245,158,11,0.10); border-color:rgba(245,158,11,0.22); }
+.gvStatus-defaulted{ color:#EF4444; background:rgba(239,68,68,0.10); border-color:rgba(239,68,68,0.22); }
+
+.gvSuccess{
+  margin-top:10px;
+  color:#10B981;
+  font-weight:700;
+  font-size:14px;
+}
+
+.gvMembers{
+  border-radius:16px;
+}
+
+.gvMemberRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:10px 0;
+}
+
+.gvAvatar{
+  width:36px;
+  height:36px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(99,102,241,0.10);
+  border:1px solid rgba(99,102,241,0.18);
+  color:#6366F1;
+  font-weight:800;
+  font-size:12px;
+  flex:0 0 auto;
+}
+
+.gvMemberMain{
+  flex:1;
+  min-width:0;
+}
+
+.gvMemberAddr{
+  font-size:13px;
+  font-weight:700;
+  color:#0F172A;
+}
+
+.gvMemberSub{
+  margin-top:2px;
+  font-size:12px;
+  color:#64748B;
+  font-weight:500;
+}
+
+.gvMemberRight{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:0 0 auto;
+}
+
+.gvPayState{
+  font-size:12px;
+  font-weight:700;
+  color:#334155;
+}
+
+.gvPayState-paid{ color:#10B981; }
+.gvPayState-pending{ color:#F59E0B; }
+.gvPayState-late{ color:#F59E0B; }
+.gvPayState-defaulted{ color:#EF4444; }
+
+.gvMiniBadge{
+  font-size:12px;
+  color:#64748B;
+  background:#F8FAFC;
+  border:1px solid #E2E8F0;
+  border-radius:999px;
+  padding:6px 10px;
+  font-weight:600;
+}
+
+.gvDivider{
+  height:1px;
+  background:#E2E8F0;
+}
+
+.gvField{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-bottom:12px;
+}
+
+.gvLabel{
+  font-size:13px;
+  font-weight:500;
+  color:#334155;
+}
+
+.gvInput{
+  width:100%;
+  box-sizing:border-box;
+  border-radius:10px;
+  border:1.5px solid #E2E8F0;
+  padding:12px 16px;
+  font-size:14px;
+  color:#0F172A;
+  background:#ffffff;
+  outline:none;
+  transition:border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.gvInput:focus{
+  border-color:#10B981;
+  box-shadow:0 0 0 3px rgba(16,185,129,0.1);
+}
+
+.gvHint{
+  margin-top:10px;
+  font-size:12px;
+  color:#64748B;
+  font-weight:300;
+}
+
+.gvShareBox{
+  width:100%;
+  border-radius:16px;
+  border:1px solid #E2E8F0;
+  background:#F8FAFC;
+  padding:12px 14px;
+  font-size:12px;
+  color:#334155;
+  word-break:break-all;
+  margin-bottom:10px;
+}
+
+.gvBtn{
+  height:34px;
+  padding:0 12px;
+  border-radius:10px;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+  border:1px solid transparent;
+  background:#ffffff;
+  color:#0F172A;
+  transition:transform 120ms ease, filter 120ms ease, opacity 120ms ease;
+}
+
+.gvBtn:hover{
+  filter:brightness(0.99);
+  transform:translateY(-1px);
+}
+
+.gvBtn:active{ transform:translateY(0); }
+.gvBtn:disabled{ opacity:0.65; cursor:not-allowed; transform:none; }
+
+.gvBtnOutline{
+  border-color:#E2E8F0;
+  color:#334155;
+}
+
+.gvBtnPrimary{
+  background:#10B981;
+  color:#ffffff;
+  border-color:#10B981;
+}
+
+.gvBtnFull{
+  width:100%;
+  height:48px;
+  font-size:14px;
+}
+
+.gvMono{
+  font-family:"DM Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.gvEmerald{ color:#10B981; font-weight:700; }
+
+.gvCenter{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+.gvLoading{
+  color:#64748B;
+  font-size:14px;
+  font-weight:600;
+}
+
+.gvEmptyCard{
+  width:100%;
+  max-width:420px;
+  background:#ffffff;
+  border:1px solid #E2E8F0;
+  border-radius:20px;
+  padding:2rem;
+  box-shadow:0 2px 8px rgba(15,23,42,0.04);
+  text-align:center;
+}
+
+.gvEmptyTitle{
+  font-family:"Playfair Display", serif;
+  font-weight:700;
+  letter-spacing:-1px;
+  font-size:22px;
+  margin-bottom:14px;
+}
+
+@media (max-width: 860px){
+  .gvNavInner{ padding:0 1rem; }
+  .gvMain{ padding:1.25rem; }
+  .gvHeroStats{ grid-template-columns:repeat(2, 1fr); }
+}
+
+@media (max-width: 540px){
+  .gvWallet{ display:none; }
+  .gvNavLeft{ gap:12px; }
+  .gvBrandName{ display:none; }
+}
+

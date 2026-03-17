@@ -14,6 +14,7 @@ export default function App() {
   const [page, setPage] = useState("loading");
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [backendUser, setBackendUser] = useState(null);
+  const ADMIN_PHONE = "0000000000";
 
   useEffect(() => {
     const init = async () => {
@@ -60,7 +61,8 @@ export default function App() {
     if (user) {
       setBackendUser(user);
       setAccount(user.walletAddress);
-      setPage("dashboard");
+      if (user.phone === ADMIN_PHONE) setPage("admin");
+      else setPage("dashboard");
     }
   };
 
@@ -73,6 +75,14 @@ export default function App() {
   };
 
   const navigate = (p, groupAddress) => {
+    if (p === "admin") {
+      if (backendUser?.phone === ADMIN_PHONE) {
+        setPage("admin");
+      } else {
+        setPage("dashboard");
+      }
+      return;
+    }
     setPage(p);
     if (groupAddress) setSelectedGroup(groupAddress);
   };
@@ -99,7 +109,12 @@ export default function App() {
   if (page === "register")   return <Register onLogin={handleLogin} />;
   if (page === "login")      return <Login onLogin={handleLogin} />;
   if (page === "profile")    return <Profile account={activeAccount} backendUser={backendUser} onNavigate={navigate} onLogout={handleLogout} />;
-  if (page === "admin")      return <Admin onNavigate={navigate} onLogout={handleLogout} />;
+  if (page === "admin") {
+    if (!backendUser || backendUser.phone !== ADMIN_PHONE) {
+      return <Dashboard account={activeAccount} backendUser={backendUser} onNavigate={navigate} onLogout={handleLogout} />;
+    }
+    return <Admin onNavigate={navigate} onLogout={handleLogout} />;
+  }
 
   // ── Original landing (preserved, accessible via navigate("landing")) ──────
   if (page === "landing") return (

@@ -11,12 +11,12 @@ router.get('/me', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
 
     // Get ETH balance from blockchain
-    const provider = new ethers.providers.JsonRpcProvider(process.env.HARDHAT_RPC);
+    const provider = new ethers.JsonRpcProvider(process.env.HARDHAT_RPC);
     const balance = await provider.getBalance(user.walletAddress);
 
     res.json({
       ...user.toObject(),
-      ethBalance: ethers.utils.formatEther(balance)
+      ethBalance: ethers.formatEther(balance)
     });
   } catch (err) {
     console.error(err);

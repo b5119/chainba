@@ -1,0 +1,47 @@
+---
+description: ChainBa design system rules for all UI work
+globs: src/**/*.js, src/**/*.jsx, src/**/*.css
+---
+
+# ChainBa design system
+
+## Stack
+React 18 CRA, plain CSS, ethers.js v6, no React Router (page state machine in App.js)
+
+## Colors
+- Primary CTA: #10B981 emerald
+- Accent: #6366F1 indigo  
+- Hero background: #0A0E1A navy
+- Content light: #F8FAFC ice white
+- Text: #0F172A headings, #334155 body, #64748B muted
+
+## Typography
+- Headlines: Playfair Display, weight 700, letter-spacing -1.5px
+- Body: DM Sans, weight 300 paragraphs / 500 labels
+- Numbers/code: DM Mono
+- One italic + emerald word per headline
+
+## Spacing & radius
+- Cards: border-radius 20px
+- Buttons: border-radius 10px
+- Hero mockup: border-radius 24px
+- Section padding: 7rem 3rem
+
+## Animation rules
+- Scroll reveal: IntersectionObserver, opacity 0→1 + translateY(30px→0)
+- Easing: cubic-bezier(0.22, 1, 0.36, 1), duration 700ms
+- Stagger siblings: 120ms delay each
+- Card hover: translateY(-4px) + colored box-shadow
+- Never use parallax or physics engines
+
+## React rules — CRITICAL
+- NEVER call hooks inside .map() or any callback
+- Every card that uses useReveal() must be its own named component
+- FeatCard, StepCard, MemberCard, PathCard — all separate components
+- CSS in companion .css file, never @import in CSS
+- Fonts via <link> in public/index.html only
+
+## Page state machine
+App.js uses setPage() not React Router.
+Navigate between pages: onNavigate prop passed down.
+Protected pages check: account || backendUser?.walletAddress
