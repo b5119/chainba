@@ -10,33 +10,43 @@
   background:#0A0E1A;
   color:#F8FAFC;
   display:flex;
-  align-items:center;
-  padding:64px 56px;
+  align-items:stretch;
+  padding:0 56px;
 }
 
 .registerLeftInner{
   width:100%;
   max-width:520px;
+  margin:0 auto;
+  min-height:100%;
+  display:grid;
+  grid-template-rows:auto 1fr;
 }
 
 .registerBrand{
   display:flex;
   align-items:center;
   gap:12px;
-  margin-bottom:28px;
+  margin:0;
+  padding-top:15vh;
+}
+
+.registerLeftContent{
+  align-self:center;
+  padding-bottom:15vh;
 }
 
 .registerLogo{
   position:relative;
-  width:28px;
-  height:18px;
+  width:30px;
+  height:20px;
   display:inline-block;
 }
 
 .registerDiamond{
   position:absolute;
-  width:12px;
-  height:12px;
+  width:16px;
+  height:16px;
   transform:rotate(45deg);
   border-radius:3px;
   background:linear-gradient(135deg, rgba(99,102,241,1) 0%, rgba(16,185,129,1) 100%);
@@ -44,7 +54,14 @@
 }
 
 .registerDiamondA{ left:0; top:3px; opacity:0.95; }
-.registerDiamondB{ left:12px; top:0; opacity:0.9; }
+.registerDiamondB{
+  left:16px;
+  top:6px;
+  width:10px;
+  height:10px;
+  opacity:0.92;
+  background:linear-gradient(135deg, rgba(245,158,11,1) 0%, rgba(16,185,129,1) 100%);
+}
 
 .registerBrandName{
   font-family:"Playfair Display", serif;
@@ -106,7 +123,7 @@
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:64px 28px;
+  padding:96px 28px;
 }
 
 .registerFormWrap{
@@ -170,8 +187,8 @@
 }
 
 .registerInput:focus{
-  border-color:rgba(99,102,241,0.55);
-  box-shadow:0 0 0 4px rgba(99,102,241,0.14);
+  border-color:#10B981;
+  box-shadow:0 0 0 3px rgba(16,185,129,0.1);
 }
 
 .registerInputError{
@@ -249,8 +266,10 @@
 @media (max-width: 900px){
   .registerSplit{ flex-direction:column; }
   .registerLeft, .registerRight{ width:100%; }
-  .registerLeft{ padding:44px 24px; }
-  .registerRight{ padding:44px 24px; }
+  .registerLeft{ padding:0 24px; }
+  .registerBrand{ padding-top:56px; }
+  .registerLeftContent{ padding-bottom:44px; }
+  .registerRight{ padding:56px 24px; }
   .registerHeadline{ font-size:38px; }
 }
 

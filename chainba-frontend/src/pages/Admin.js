@@ -1,19 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BASE_URL from "../api";
 
 const ADMIN_KEY = "chainba2026";
 
-export default function Admin({ onNavigate }) {
-  const [authed, setAuthed] = useState(false);
-  const [pw, setPw] = useState("");
-  const [pwError, setPwError] = useState("");
+export default function Admin({ onNavigate, onLogout }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const loginAdmin = () => {
-    if (pw === ADMIN_KEY) { setAuthed(true); loadUsers(); }
-    else setPwError("Incorrect admin password");
-  };
 
   const loadUsers = async () => {
     setLoading(true);
@@ -29,29 +21,10 @@ export default function Admin({ onNavigate }) {
     finally { setLoading(false); }
   };
 
-  if (!authed) return (
-    <div style={{ minHeight: "100vh", background: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "#1e293b", borderRadius: "16px", padding: "40px", width: "100%", maxWidth: "380px" }}>
-        <div style={{ textAlign: "center", marginBottom: "28px" }}>
-          <div style={{ fontSize: "48px" }}>🛡️</div>
-          <h2 style={{ color: "#f59e0b", margin: "8px 0 4px" }}>Admin Panel</h2>
-          <p style={{ color: "#64748b", fontSize: "14px", margin: 0 }}>Decentralised Savings Platform</p>
-        </div>
-        {pwError && <p style={{ color: "#ef4444", textAlign: "center", fontSize: "14px" }}>⚠ {pwError}</p>}
-        <input type="password" value={pw} onChange={e => { setPw(e.target.value); setPwError(""); }}
-          onKeyDown={e => e.key === "Enter" && loginAdmin()}
-          style={{ width: "100%", background: "#0f172a", border: "1px solid #334155", borderRadius: "8px", padding: "12px", color: "#f1f5f9", fontSize: "15px", boxSizing: "border-box", marginBottom: "16px" }} />
-        <button onClick={loginAdmin}
-          style={{ width: "100%", background: "#f59e0b", color: "#0f172a", border: "none", borderRadius: "8px", padding: "14px", fontSize: "16px", fontWeight: "bold", cursor: "pointer" }}>
-          Enter Admin Panel
-        </button>
-        <button onClick={() => onNavigate("landing")}
-          style={{ width: "100%", background: "transparent", border: "none", color: "#64748b", padding: "12px", cursor: "pointer", marginTop: "8px", fontSize: "14px" }}>
-          ← Back to Home
-        </button>
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    loadUsers();
+    // eslint-disable-next-line
+  }, []);
 
   return (
     <div style={{ minHeight: "100vh", background: "#0f172a", color: "#f1f5f9" }}>
@@ -65,9 +38,9 @@ export default function Admin({ onNavigate }) {
             style={{ background: "transparent", border: "1px solid #334155", color: "#94a3b8", borderRadius: "8px", padding: "8px 16px", cursor: "pointer", fontSize: "14px" }}>
             Dashboard
           </button>
-          <button onClick={() => setAuthed(false)}
+          <button onClick={onLogout}
             style={{ background: "transparent", border: "1px solid #ef4444", color: "#ef4444", borderRadius: "8px", padding: "8px 16px", cursor: "pointer", fontSize: "14px" }}>
-            Exit Admin
+            Logout
           </button>
         </div>
       </nav>

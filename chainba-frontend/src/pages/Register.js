@@ -73,14 +73,16 @@ export default function Register({ onLogin }) {
             <span className="registerBrandName">ChainBa</span>
           </div>
 
-          <h1 className="registerHeadline">Join your first circle.</h1>
-          <p className="registerSubtext">
-            Community savings on the blockchain. Automatic. Transparent. Trustless.
-          </p>
+          <div className="registerLeftContent">
+            <h1 className="registerHeadline">Join your first circle.</h1>
+            <p className="registerSubtext">
+              Community savings on the blockchain. Automatic. Transparent. Trustless.
+            </p>
 
-          <div className="registerTrustBadge" role="note">
-            <span className="registerCheck" aria-hidden="true">✓</span>
-            <span>No wallet needed — we create one for you</span>
+            <div className="registerTrustBadge" role="note">
+              <span className="registerCheck" aria-hidden="true">✓</span>
+              <span>No wallet needed — we create one for you</span>
+            </div>
           </div>
         </div>
       </aside>

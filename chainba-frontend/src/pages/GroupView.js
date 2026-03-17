@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { GROUP_ABI } from "../contracts/config";
 import { toast } from "react-toastify";
+import "./GroupView.css";
 
 export default function GroupView({ account, groupAddress, onNavigate }) {
   const [group, setGroup] = useState(null);
@@ -103,204 +104,248 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
   };
 
   if (loading) return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#0f172a",
-      display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <p style={{ color: "#f59e0b", fontSize: "20px" }}>⏳ Loading group...</p>
+    <div className="gvPage">
+      <div className="gvCenter">
+        <div className="gvLoading">Loading circle…</div>
+      </div>
     </div>
   );
 
   if (!group) return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#0f172a",
-      display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ textAlign: "center" }}>
-        <p style={{ color: "#ef4444", fontSize: "18px" }}>Group not found</p>
-        <button onClick={() => onNavigate("dashboard")}
-          style={{ marginTop: "16px", padding: "10px 24px",
-            backgroundColor: "#f59e0b", border: "none", borderRadius: "8px",
-            color: "#0f172a", fontWeight: "bold" }}>
-          ← Dashboard
-        </button>
+    <div className="gvPage">
+      <div className="gvCenter">
+        <div className="gvEmptyCard">
+          <div className="gvEmptyTitle">Circle not found</div>
+          <button className="gvBtn gvBtnPrimary" onClick={() => onNavigate("dashboard")}>
+            ← Back to dashboard
+          </button>
+        </div>
       </div>
     </div>
   );
 
-  const statusColor = { Open:"#f59e0b", Active:"#4ade80", Completed:"#64748b" };
-  const mColor = { Paid:"#4ade80", Pending:"#f59e0b", Late:"#fb923c", Defaulted:"#ef4444" };
-  const inp = { width:"100%", padding:"10px", marginTop:"4px",
-    backgroundColor:"#0f172a", border:"1px solid #334155",
-    borderRadius:"6px", color:"#fff", fontSize:"14px" };
+  const walletShort = account ? `${account.slice(0, 6)}...${account.slice(-4)}` : "—";
+  const leaderShort = group.leader ? `${group.leader.slice(0, 6)}...${group.leader.slice(-4)}` : "—";
+  const badgeTone = group.status === "Active" ? "active" : group.status === "Open" ? "open" : "completed";
+
+  const contributedCount = (() => {
+    if (!group.cycleInfo) return null;
+    const total = Number.parseFloat(group.cycleInfo.totalCollected);
+    const each = Number.parseFloat(group.contribution);
+    if (!Number.isFinite(total) || !Number.isFinite(each) || each <= 0) return null;
+    return Math.max(0, Math.min(group.memberCount, Math.floor(total / each)));
+  })();
+
+  const progressPct = contributedCount == null || group.memberCount === 0
+    ? 0
+    : Math.round((contributedCount / group.memberCount) * 100);
 
   return (
-    <div style={{ minHeight:"100vh", backgroundColor:"#0f172a" }}>
-      <div style={{ backgroundColor:"#1e3a6e", padding:"16px 40px",
-        display:"flex", justifyContent:"space-between", alignItems:"center",
-        borderBottom:"3px solid #f59e0b" }}>
-        <h1 style={{ color:"#fff" }}>🪙 ChainBa</h1>
-        <button onClick={() => onNavigate("dashboard")}
-          style={{ backgroundColor:"transparent", color:"#94a3b8",
-            border:"1px solid #334155", padding:"10px 20px", borderRadius:"8px" }}>
-          ← Dashboard
-        </button>
-      </div>
+    <div className="gvPage">
+      <header className="gvNav">
+        <div className="gvNavInner">
+          <div className="gvNavLeft">
+            <button className="gvBack" type="button" onClick={() => onNavigate("dashboard")}>
+              ← Back to dashboard
+            </button>
+            <button className="gvBrand" type="button" onClick={() => onNavigate("landingV2")}>
+              <span className="gvLogo" aria-hidden="true">
+                <span className="gvDiamond gvDiamondA" />
+                <span className="gvDiamond gvDiamondB" />
+              </span>
+              <span className="gvBrandName">ChainBa</span>
+            </button>
+          </div>
+          <div className="gvNavRight">
+            <div className="gvWallet" title={account || ""}>{walletShort}</div>
+            <button className="gvBtn gvBtnOutline" type="button" onClick={() => onNavigate("profile")}>
+              Profile
+            </button>
+          </div>
+        </div>
+      </header>
 
-      <div style={{ padding:"30px 40px", maxWidth:"760px", margin:"0 auto" }}>
-
-        {/* GROUP CARD */}
-        <div style={{ backgroundColor:"#1e293b", borderRadius:"12px",
-          padding:"24px", border:"1px solid #334155", marginBottom:"20px" }}>
-          <div style={{ display:"flex", justifyContent:"space-between",
-            alignItems:"flex-start", marginBottom:"16px" }}>
+      <main className="gvMain">
+        <section className="gvCard gvHero">
+          <div className="gvHeroTop">
             <div>
-              <h2 style={{ color:"#fff", fontSize:"22px" }}>📦 {group.name}</h2>
-              <p style={{ color:"#64748b", fontSize:"13px" }}>Type: {group.type}</p>
-              <p style={{ color:"#475569", fontSize:"11px", marginTop:"4px" }}>
-                {groupAddress}
-              </p>
+              <h1 className="gvTitle">{group.name}</h1>
+              <div className="gvSubRow">
+                <span className={`gvBadge gvBadge-${badgeTone}`}>{group.status}</span>
+                <span className="gvSubText">Leader: <span className="gvMono">{leaderShort}</span></span>
+                <span className="gvSubText">Address: <span className="gvMono">{groupAddress.slice(0, 8)}…{groupAddress.slice(-6)}</span></span>
+              </div>
             </div>
-            <span style={{ backgroundColor: statusColor[group.status]+"22",
-              color: statusColor[group.status], padding:"5px 14px",
-              borderRadius:"20px", fontWeight:"bold", fontSize:"13px" }}>
-              {group.status}
-            </span>
           </div>
 
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"12px" }}>
+          <div className="gvHeroStats">
             {[
               ["Contribution", `${group.contribution} ETH`],
-              ["Stake", `${group.stake} ETH`],
-              ["Members", `${group.memberCount}/${group.limit}`]
-            ].map(([label, val]) => (
-              <div key={label} style={{ backgroundColor:"#0f172a", borderRadius:"8px",
-                padding:"12px", textAlign:"center" }}>
-                <p style={{ color:"#f59e0b", fontSize:"18px", fontWeight:"bold" }}>{val}</p>
-                <p style={{ color:"#64748b", fontSize:"12px" }}>{label}</p>
+              ["Member limit", `${group.memberCount}/${group.limit}`],
+              ["Cycle duration", "—"],
+              ["Current cycle", `${group.currentCycle + 1}`]
+            ].map(([k, v]) => (
+              <div key={k} className="gvStat">
+                <div className="gvStatLabel">{k}</div>
+                <div className="gvStatValue">{v}</div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* ACTIVE CYCLE */}
         {group.status === "Active" && group.cycleInfo && (
-          <div style={{ backgroundColor:"#1e293b", borderRadius:"12px",
-            padding:"24px", border:"1px solid #334155", marginBottom:"20px" }}>
-            <h3 style={{ color:"#f59e0b", marginBottom:"14px" }}>
-              🔄 Cycle {group.currentCycle + 1} — In Progress
-            </h3>
-            <p style={{ color:"#94a3b8", marginBottom:"6px" }}>
-              Beneficiary:{" "}
-              <span style={{ color:"#fff" }}>
-                {group.cycleInfo.beneficiary.slice(0,8)}...
-                {group.cycleInfo.beneficiary.slice(-6)}
-                {group.cycleInfo.beneficiary.toLowerCase() === account.toLowerCase()
-                  && " 🎉 YOU!"}
-              </span>
-            </p>
-            <p style={{ color:"#94a3b8", marginBottom:"6px" }}>
-              Collected:{" "}
-              <span style={{ color:"#4ade80", fontWeight:"bold" }}>
-                {group.cycleInfo.totalCollected} ETH
-              </span>
-            </p>
-            <p style={{ color:"#94a3b8", marginBottom:"16px" }}>
-              Deadline: <span style={{ color:"#fff" }}>{group.cycleInfo.deadline}</span>
-            </p>
+          <section className="gvCard">
+            <div className="gvSectionTop">
+              <h2 className="gvSectionTitle">Round progress</h2>
+              <div className="gvSectionMeta">
+                Deadline: <span className="gvMono">{group.cycleInfo.deadline}</span>
+              </div>
+            </div>
+
+            <div className="gvProgressBar" aria-hidden="true">
+              <div className="gvProgressFill" style={{ width: `${progressPct}%` }} />
+            </div>
+            <div className="gvProgressText">
+              {contributedCount == null
+                ? "Contribution progress unavailable"
+                : `${contributedCount} of ${group.memberCount} members contributed this round`}
+            </div>
+
+            <div className="gvPayout">
+              <div className="gvPayoutLabel">Payout recipient</div>
+              <div className="gvPayoutValue">
+                <span className="gvMono">
+                  {group.cycleInfo.beneficiary.slice(0, 8)}…{group.cycleInfo.beneficiary.slice(-6)}
+                </span>
+                {group.cycleInfo.beneficiary.toLowerCase() === account.toLowerCase() && (
+                  <span className="gvPayoutYou">You</span>
+                )}
+              </div>
+              <div className="gvPayoutSub">
+                Collected: <span className="gvMono gvEmerald">{group.cycleInfo.totalCollected} ETH</span>
+              </div>
+            </div>
 
             {group.isMember && !group.isEjected && (
-              <div style={{ backgroundColor:"#0f172a", borderRadius:"8px", padding:"16px" }}>
-                <p style={{ color:"#94a3b8", marginBottom:"10px" }}>
-                  Your Status:{" "}
-                  <strong style={{ color: mColor[group.memberStatus] }}>
-                    {group.memberStatus}
-                  </strong>
-                </p>
+              <div className="gvContribute">
+                <div className="gvContributeRow">
+                  <div className="gvContributeLabel">Your status</div>
+                  <div className={`gvStatus gvStatus-${group.memberStatus.toLowerCase()}`}>{group.memberStatus}</div>
+                </div>
+
                 {(group.memberStatus === "Pending" || group.memberStatus === "Late") && (
-                  <button onClick={payContribution} disabled={paying}
-                    style={{ width:"100%", padding:"14px",
-                      backgroundColor: paying ? "#64748b" : "#4ade80",
-                      border:"none", borderRadius:"8px", color:"#0f172a",
-                      fontSize:"16px", fontWeight:"bold" }}>
-                    {paying ? "Processing..." : `💸 Pay ${group.contribution} ETH Now`}
+                  <button className="gvBtn gvBtnPrimary gvBtnFull" onClick={payContribution} disabled={paying}>
+                    {paying ? "Confirming transaction..." : `Pay contribution (${group.contribution} ETH)`}
                   </button>
                 )}
+
                 {group.memberStatus === "Paid" && (
-                  <p style={{ color:"#4ade80", textAlign:"center",
-                    fontWeight:"bold", fontSize:"16px" }}>
-                    ✅ You have paid this cycle!
-                  </p>
+                  <div className="gvSuccess">✓ Contribution confirmed</div>
                 )}
               </div>
             )}
-          </div>
+          </section>
         )}
 
-        {/* JOIN FORM */}
+        <section className="gvCard gvMembers">
+          <div className="gvSectionTop">
+            <h2 className="gvSectionTitle">Members</h2>
+            <div className="gvSectionMeta">{group.memberCount} total</div>
+          </div>
+
+          <div className="gvMemberRow">
+            <div className="gvAvatar" aria-hidden="true">LD</div>
+            <div className="gvMemberMain">
+              <div className="gvMemberAddr gvMono">{leaderShort}</div>
+              <div className="gvMemberSub">Leader</div>
+            </div>
+            <div className="gvMemberRight">
+              <span className="gvMiniBadge">Rep —</span>
+            </div>
+          </div>
+
+          <div className="gvDivider" />
+
+          <div className="gvMemberRow">
+            <div className="gvAvatar" aria-hidden="true">YO</div>
+            <div className="gvMemberMain">
+              <div className="gvMemberAddr gvMono">{walletShort}</div>
+              <div className="gvMemberSub">You</div>
+            </div>
+            <div className="gvMemberRight">
+              <span className={`gvPayState gvPayState-${group.memberStatus.toLowerCase()}`}>
+                {group.memberStatus === "Paid" ? "✓" : group.memberStatus === "Pending" ? "⏳" : "⏳"} {group.memberStatus}
+              </span>
+              <span className="gvMiniBadge">Rep —</span>
+            </div>
+          </div>
+        </section>
+
         {group.status === "Open" && !group.isMember && (
-          <div style={{ backgroundColor:"#1e293b", borderRadius:"12px",
-            padding:"24px", border:"1px solid #f59e0b", marginBottom:"20px" }}>
-            <h3 style={{ color:"#f59e0b", marginBottom:"6px" }}>Join This Group</h3>
-            <p style={{ color:"#64748b", fontSize:"13px", marginBottom:"16px" }}>
-              Stake required: <strong style={{ color:"#fff" }}>{group.stake} ETH</strong>
-              {" "}— locked until group completes
-            </p>
+          <section className="gvCard gvJoin">
+            <div className="gvSectionTop">
+              <h2 className="gvSectionTitle">Join this circle</h2>
+              <div className="gvSectionMeta">
+                Stake required: <span className="gvMono">{group.stake} ETH</span>
+              </div>
+            </div>
+
             {[
               ["Full Name", "name", "Your full name"],
               ["National ID (NRC)", "nationalId", "e.g. 123456/78/9"],
               ["Phone Number", "phone", "e.g. 0971234567"]
             ].map(([label, key, ph]) => (
-              <div key={key} style={{ marginBottom:"12px" }}>
-                <label style={{ color:"#94a3b8", fontSize:"13px" }}>{label}</label>
-                <input style={inp} placeholder={ph}
+              <div key={key} className="gvField">
+                <label className="gvLabel">{label}</label>
+                <input
+                  className="gvInput"
+                  placeholder={ph}
                   value={joinForm[key]}
-                  onChange={e => setJoinForm(f => ({ ...f, [key]: e.target.value }))} />
+                  onChange={e => setJoinForm(f => ({ ...f, [key]: e.target.value }))}
+                />
               </div>
             ))}
-            <button onClick={joinGroup} disabled={joining}
-              style={{ width:"100%", padding:"14px", marginTop:"8px",
-                backgroundColor: joining ? "#64748b" : "#f59e0b",
-                border:"none", borderRadius:"8px", color:"#0f172a",
-                fontSize:"15px", fontWeight:"bold" }}>
-              {joining ? "Joining..." : `🤝 Join & Pay ${group.stake} ETH Stake`}
+
+            <button className="gvBtn gvBtnPrimary gvBtnFull" onClick={joinGroup} disabled={joining}>
+              {joining ? "Joining..." : `Join & pay ${group.stake} ETH stake`}
             </button>
-            <p style={{ color:"#475569", fontSize:"11px",
-              marginTop:"8px", textAlign:"center" }}>
-              🔒 Your identity is hashed with keccak256 before storing on blockchain
-            </p>
-          </div>
+            <div className="gvHint">
+              Your identity is hashed with keccak256 before storing on-chain.
+            </div>
+          </section>
         )}
 
-        {/* SHARE */}
-        <div style={{ backgroundColor:"#1e293b", borderRadius:"12px",
-          padding:"18px", border:"1px solid #334155" }}>
-          <p style={{ color:"#64748b", fontSize:"13px", marginBottom:"8px" }}>
-            📤 Share this address with members to join:
-          </p>
-          <p style={{ color:"#f59e0b", fontSize:"12px", wordBreak:"break-all",
-            backgroundColor:"#0f172a", padding:"10px", borderRadius:"6px" }}>
-            {groupAddress}
-          </p>
-          <button onClick={() => {
-  try {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(groupAddress);
-    } else {
-      const el = document.createElement("textarea");
-      el.value = groupAddress;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-    }
-    toast.success("Address copied!");
-  } catch(e) {
-    toast.info("Copy manually: " + groupAddress);
-  }
-}} style={{ marginTop:"8px", padding:"8px 16px",
-            backgroundColor:"transparent", border:"1px solid #334155",
-            borderRadius:"6px", color:"#94a3b8", fontSize:"13px" }}>
-            📋 Copy Address
+        <section className="gvCard">
+          <div className="gvSectionTop">
+            <h2 className="gvSectionTitle">Share</h2>
+            <div className="gvSectionMeta">Invite members with the circle address</div>
+          </div>
+
+          <div className="gvShareBox gvMono">{groupAddress}</div>
+          <button
+            className="gvBtn gvBtnOutline"
+            onClick={() => {
+              try {
+                if (navigator.clipboard) {
+                  navigator.clipboard.writeText(groupAddress);
+                } else {
+                  const el = document.createElement("textarea");
+                  el.value = groupAddress;
+                  document.body.appendChild(el);
+                  el.select();
+                  document.execCommand("copy");
+                  document.body.removeChild(el);
+                }
+                toast.success("Address copied!");
+              } catch (e) {
+                toast.info("Copy manually: " + groupAddress);
+              }
+            }}
+          >
+            Copy address
           </button>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }
