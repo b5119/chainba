@@ -24,7 +24,7 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
       const signer = provider.getSigner();
       
       // Get balance
-      const bal = await provider.getBalance(account);
+      const accounts = await window.ethereum.request({method:"eth_accounts"}); const activeAddr = accounts[0] || account; const bal = await provider.getBalance(activeAddr);
       setBalance(parseFloat(ethers.utils.formatEther(bal)).toFixed(4));
 
       // Get groups

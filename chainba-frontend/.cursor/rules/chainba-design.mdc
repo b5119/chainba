@@ -45,3 +45,27 @@ React 18 CRA, plain CSS, ethers.js v6, no React Router (page state machine in Ap
 App.js uses setPage() not React Router.
 Navigate between pages: onNavigate prop passed down.
 Protected pages check: account || backendUser?.walletAddress
+
+## Git commit conventions
+Always use conventional commits format:
+
+feat:     new feature or page
+fix:      bug fix
+style:    visual/CSS changes only, no logic
+refactor: code restructure, no behaviour change
+chore:    config, dependencies, tooling
+docs:     README, comments only
+
+Examples:
+  feat: add GroupView redesign with cycle progress
+  fix: replace hardcoded IP with BASE_URL in Login.js
+  style: update Dashboard card hover states
+  refactor: extract MemberCard as separate component
+  chore: add chainba design tokens to cursor rules
+
+Rules:
+- Subject line max 72 characters
+- Use present tense: "add" not "added"
+- No period at end
+- Reference the page/component affected
+- Never commit "fix stuff" or "update" alone

@@ -23,7 +23,8 @@ export default function App() {
       if (saved && token) {
         const user = JSON.parse(saved);
         setBackendUser(user);
-        setAccount(user.walletAddress);
+        // Don't override MetaMask account with backend wallet
+        // setAccount(user.walletAddress);
         setPage("dashboard");
         return;
       }
@@ -35,8 +36,15 @@ export default function App() {
         } catch (err) { console.error(err); }
 
         window.ethereum.on("accountsChanged", (accounts) => {
-          if (accounts.length === 0) setAccount(null);
-          else setAccount(accounts[0]);
+          if (accounts.length === 0) {
+            setAccount(null);
+            setBackendUser(null);
+            localStorage.removeItem("chainba_token");
+            localStorage.removeItem("chainba_user");
+            setPage("landingV2");
+          } else {
+            setAccount(accounts[0]);
+          }
         });
       }
 
@@ -45,6 +53,14 @@ export default function App() {
     };
     init();
   }, []);
+
+  const getMetaMaskAccount = async () => {
+    if (!window.ethereum) return null;
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_accounts" });
+      return accounts[0] || null;
+    } catch { return null; }
+  };
 
   const connectWallet = async () => {
     try {
@@ -60,7 +76,8 @@ export default function App() {
     if (redirect === "register") { setPage("register"); return; }
     if (user) {
       setBackendUser(user);
-      setAccount(user.walletAddress);
+      // Don't override MetaMask account with backend wallet
+        // setAccount(user.walletAddress);
       if (user.phone === ADMIN_PHONE) setPage("admin");
       else setPage("dashboard");
     }
@@ -87,7 +104,14 @@ export default function App() {
     if (groupAddress) setSelectedGroup(groupAddress);
   };
 
-  const activeAccount = account || backendUser?.walletAddress;
+  const activeAccount = account || (() => {
+    try {
+      return window.ethereum?.selectedAddress || backendUser?.walletAddress;
+    } catch {
+      return backendUser?.walletAddress;
+    }
+  })();
+  // MetaMask account always takes priority over backend wallet
 
   // ── Loading screen ────────────────────────────────────────────────────────
   if (page === "loading") return (
