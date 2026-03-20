@@ -79,16 +79,15 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
 
       const [
         name, status, contribAmount, stakeAmt,
-        limit, cycleDays, cycle, leader,
+        limit, cycle, leader,
       ] = await Promise.all([
         contract.groupName(),
         contract.status(),
         contract.contributionAmount(),
         contract.stakeAmount(),
         contract.memberLimit(),
-        contract.cycleDurationDays(),
         contract.currentCycle(),
-        contract.leader ? contract.leader() : Promise.resolve(null),
+        contract.leader(),
       ]);
 
       setGroupData({
@@ -97,7 +96,6 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
         contributionAmount: contribAmount,
         stakeAmount: stakeAmt,
         memberLimit: Number(limit),
-        cycleDurationDays: Number(cycleDays),
       });
       setCurrentCycle(Number(cycle));
 
@@ -144,7 +142,7 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to load group. Make sure Hardhat node is running.");
+      setError(`Error: ${err.message || err.reason || JSON.stringify(err)}`);
     } finally {
       setLoading(false);
     }
@@ -281,10 +279,7 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
               <div className="gv-stat-label">Members</div>
               <div className="gv-stat-value">{memberCount} / {groupData?.memberLimit}</div>
             </div>
-            <div className="gv-stat">
-              <div className="gv-stat-label">Cycle days</div>
-              <div className="gv-stat-value">{groupData?.cycleDurationDays}d</div>
-            </div>
+
             <div className="gv-stat">
               <div className="gv-stat-label">Current round</div>
               <div className="gv-stat-value">{currentCycle}</div>
