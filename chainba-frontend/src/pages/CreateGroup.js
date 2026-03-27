@@ -2,11 +2,53 @@ import { useState } from "react";
 import { ethers } from "ethers";
 import { FACTORY_ADDRESS, FACTORY_ABI } from "../contracts/config";
 import { toast } from "react-toastify";
+import "./CreateGroup.css";
+
+function LogoMark() {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:3 }}>
+      <div style={{ width:13, height:13, background:"#10B981", borderRadius:3, transform:"rotate(45deg)", flexShrink:0 }} />
+      <div style={{ width:8, height:8, background:"#6366F1", borderRadius:2, transform:"rotate(45deg)", marginLeft:-3, marginTop:5, flexShrink:0 }} />
+    </div>
+  );
+}
+
+// ─── Step indicator ───────────────────────────────────────────────────────
+function StepBar({ current, total }) {
+  return (
+    <div className="cg-stepbar">
+      {Array.from({ length: total }, (_, i) => (
+        <div key={i} className={`cg-step-seg${i < current ? " cg-step-done" : i === current - 1 ? " cg-step-active" : ""}`} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Form field ───────────────────────────────────────────────────────────
+function Field({ label, hint, children }) {
+  return (
+    <div className="cg-field">
+      <label className="cg-label">{label}</label>
+      {hint && <p className="cg-hint">{hint}</p>}
+      {children}
+    </div>
+  );
+}
+
+// ─── Summary row ─────────────────────────────────────────────────────────
+function SummaryRow({ label, value, highlight }) {
+  return (
+    <div className="cg-summary-row">
+      <span className="cg-summary-label">{label}</span>
+      <span className={`cg-summary-value${highlight ? " cg-summary-highlight" : ""}`}>{value}</span>
+    </div>
+  );
+}
 
 export default function CreateGroup({ account, onNavigate }) {
-  const [step, setStep] = useState(1);
+  const [step,    setStep]    = useState(1);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
+  const [form,    setForm]    = useState({
     groupName: "", groupType: "Cash",
     contributionAmount: "", stakeAmount: "",
     memberLimit: "4", gracePeriodDays: "3",
@@ -19,8 +61,8 @@ export default function CreateGroup({ account, onNavigate }) {
     setLoading(true);
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
+      const signer   = provider.getSigner();
+      const factory  = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
       const tx = await factory.createGroup(
         form.groupName, form.groupType,
         ethers.utils.parseEther(form.contributionAmount),
@@ -30,173 +72,153 @@ export default function CreateGroup({ account, onNavigate }) {
         ethers.utils.parseEther(form.penaltyAmount),
         parseInt(form.ejectionThreshold)
       );
-      toast.info("Deploying group contract...");
+      toast.info("Deploying circle contract...");
       await tx.wait();
-      toast.success("✅ Group created on blockchain!");
+      toast.success("✅ Circle created on blockchain!");
       onNavigate("dashboard");
-    } catch(e) {
+    } catch (e) {
       toast.error("Error: " + (e.reason || e.message));
     }
     setLoading(false);
   };
 
-  const inp = {
-    width: "100%", padding: "12px", backgroundColor: "#0f172a",
-    border: "1px solid #334155", borderRadius: "8px",
-    color: "#fff", fontSize: "15px", marginTop: "6px"
-  };
+  const stepLabels = ["Basic details", "Amounts", "Rules & deploy"];
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#0f172a" }}>
-      <div style={{ backgroundColor: "#1e3a6e", padding: "16px 40px",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        borderBottom: "3px solid #f59e0b" }}>
-        <h1 style={{ color: "#fff" }}>🪙 ChainBa</h1>
-        <button onClick={() => onNavigate("dashboard")}
-          style={{ backgroundColor: "transparent", color: "#94a3b8",
-            border: "1px solid #334155", padding: "10px 20px", borderRadius: "8px" }}>
-          ← Back
+    <div className="cg-page">
+
+      {/* Navbar */}
+      <nav className="cg-nav">
+        <div style={{ display:"flex", alignItems:"center", gap:9, cursor:"pointer" }} onClick={() => onNavigate("landingV2")}>
+          <LogoMark />
+          <span style={{ fontFamily:"'Playfair Display',serif", fontSize:18, fontWeight:700, color:"#0F172A", marginLeft:6 }}>ChainBa</span>
+        </div>
+        <button className="cg-btn-back" onClick={() => onNavigate("dashboard")}>
+          ← Dashboard
         </button>
-      </div>
+      </nav>
 
-      <div style={{ maxWidth: "580px", margin: "40px auto", padding: "0 20px" }}>
-        <h2 style={{ color: "#fff", marginBottom: "6px" }}>Create Chilimba Group</h2>
-        <p style={{ color: "#64748b", marginBottom: "24px" }}>Step {step} of 3</p>
+      <main className="cg-main">
 
-        <div style={{ display: "flex", gap: "8px", marginBottom: "28px" }}>
-          {[1,2,3].map(s => (
-            <div key={s} style={{ flex: 1, height: "4px", borderRadius: "4px",
-              backgroundColor: s <= step ? "#f59e0b" : "#334155" }} />
-          ))}
+        {/* Header */}
+        <div className="cg-header">
+          <h1 className="cg-title">Create a circle</h1>
+          <p className="cg-subtitle">Step {step} of 3 — {stepLabels[step - 1]}</p>
+          <StepBar current={step} total={3} />
         </div>
 
-        <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
-          padding: "28px", border: "1px solid #334155" }}>
+        {/* Card */}
+        <div className="cg-card">
 
+          {/* ── Step 1: Basic details ── */}
           {step === 1 && (
             <div>
-              <h3 style={{ color: "#f59e0b", marginBottom: "20px" }}>📋 Basic Details</h3>
-              {[
-                ["Group Name", "groupName", "text", "e.g. Lusaka Sisters 2026"],
-                ["Number of Members", "memberLimit", "number", "4"]
-              ].map(([label, key, type, ph]) => (
-                <div key={key} style={{ marginBottom: "16px" }}>
-                  <label style={{ color: "#94a3b8", fontSize: "14px" }}>{label}</label>
-                  <input type={type} style={inp} placeholder={ph}
-                    value={form[key]} onChange={e => update(key, e.target.value)} />
-                </div>
-              ))}
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ color: "#94a3b8", fontSize: "14px" }}>Group Type</label>
-                <select style={inp} value={form.groupType}
+              <h2 className="cg-step-heading">Basic details</h2>
+              <Field label="Circle name" hint="Give your Chilimba group a memorable name">
+                <input className="cg-input" type="text"
+                  placeholder="e.g. Lusaka Sisters 2026"
+                  value={form.groupName}
+                  onChange={e => update("groupName", e.target.value)} />
+              </Field>
+              <Field label="Number of members" hint="How many people will join this circle?">
+                <input className="cg-input" type="number" min="2" max="20"
+                  placeholder="4"
+                  value={form.memberLimit}
+                  onChange={e => update("memberLimit", e.target.value)} />
+              </Field>
+              <Field label="Circle type">
+                <select className="cg-input" value={form.groupType}
                   onChange={e => update("groupType", e.target.value)}>
                   <option>Cash</option>
                   <option>Goods</option>
                   <option>Mixed</option>
                 </select>
-              </div>
+              </Field>
             </div>
           )}
 
+          {/* ── Step 2: Amounts ── */}
           {step === 2 && (
             <div>
-              <h3 style={{ color: "#f59e0b", marginBottom: "20px" }}>💰 Amounts (ETH)</h3>
-              <p style={{ color: "#64748b", fontSize: "13px", marginBottom: "16px" }}>
-                1 ETH = K1,000 for demo purposes
-              </p>
-              {[
-                ["Contribution per Cycle (ETH)", "contributionAmount", "e.g. 1.0"],
-                ["Security Stake per Member (ETH)", "stakeAmount", "e.g. 0.2"],
-                ["Late Penalty Amount (ETH)", "penaltyAmount", "e.g. 0.1"]
-              ].map(([label, key, ph]) => (
-                <div key={key} style={{ marginBottom: "16px" }}>
-                  <label style={{ color: "#94a3b8", fontSize: "14px" }}>{label}</label>
-                  <input type="number" step="0.01" style={inp}
-                    placeholder={ph} value={form[key]}
-                    onChange={e => update(key, e.target.value)} />
-                </div>
-              ))}
+              <h2 className="cg-step-heading">Amounts</h2>
+              <div className="cg-info-pill">1 ETH = K1,000 for demo purposes</div>
+              <Field label="Contribution per cycle (ETH)" hint="Amount each member pays every round">
+                <input className="cg-input" type="number" step="0.01"
+                  placeholder="e.g. 1.0"
+                  value={form.contributionAmount}
+                  onChange={e => update("contributionAmount", e.target.value)} />
+              </Field>
+              <Field label="Security stake per member (ETH)" hint="Held as collateral, returned on completion">
+                <input className="cg-input" type="number" step="0.01"
+                  placeholder="e.g. 0.2"
+                  value={form.stakeAmount}
+                  onChange={e => update("stakeAmount", e.target.value)} />
+              </Field>
+              <Field label="Late penalty amount (ETH)" hint="Deducted from stake on late payment">
+                <input className="cg-input" type="number" step="0.01"
+                  placeholder="e.g. 0.1"
+                  value={form.penaltyAmount}
+                  onChange={e => update("penaltyAmount", e.target.value)} />
+              </Field>
             </div>
           )}
 
+          {/* ── Step 3: Rules + Summary ── */}
           {step === 3 && (
             <div>
-              <h3 style={{ color: "#f59e0b", marginBottom: "20px" }}>⚖️ Rules</h3>
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ color: "#94a3b8", fontSize: "14px" }}>
-                  Grace Period (days)
-                </label>
-                <input type="number" style={inp} value={form.gracePeriodDays}
+              <h2 className="cg-step-heading">Rules</h2>
+              <Field label="Grace period (days)" hint="Days allowed after cycle start to make contribution">
+                <input className="cg-input" type="number" min="1"
+                  value={form.gracePeriodDays}
                   onChange={e => update("gracePeriodDays", e.target.value)} />
-              </div>
-              <div style={{ marginBottom: "20px" }}>
-                <label style={{ color: "#94a3b8", fontSize: "14px" }}>
-                  Eject after how many defaults?
-                </label>
-                <select style={inp} value={form.ejectionThreshold}
+              </Field>
+              <Field label="Eject after how many defaults?">
+                <select className="cg-input" value={form.ejectionThreshold}
                   onChange={e => update("ejectionThreshold", e.target.value)}>
                   <option value="1">1 default</option>
                   <option value="2">2 defaults</option>
                   <option value="3">3 defaults</option>
                 </select>
-              </div>
+              </Field>
 
-              <div style={{ backgroundColor: "#0f172a", borderRadius: "8px",
-                padding: "16px", border: "1px solid #334155" }}>
-                <p style={{ color: "#f59e0b", fontWeight: "bold", marginBottom: "10px" }}>
-                  📋 Contract Summary
-                </p>
-                {[
-                  ["Group", form.groupName],
-                  ["Type", form.groupType],
-                  ["Members", form.memberLimit],
-                  ["Contribution", `${form.contributionAmount} ETH`],
-                  ["Stake", `${form.stakeAmount} ETH`],
-                  ["Penalty", `${form.penaltyAmount} ETH`],
-                  ["Grace Period", `${form.gracePeriodDays} days`],
-                  ["Ejection After", `${form.ejectionThreshold} defaults`]
-                ].map(([k, v]) => (
-                  <div key={k} style={{ display: "flex", justifyContent: "space-between",
-                    padding: "5px 0", borderBottom: "1px solid #1e293b" }}>
-                    <span style={{ color: "#64748b" }}>{k}</span>
-                    <span style={{ color: "#fff" }}>{v}</span>
-                  </div>
-                ))}
-                <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "10px" }}>
-                  ⚠ Once deployed these rules CANNOT be changed
-                </p>
+              {/* Contract summary */}
+              <div className="cg-summary">
+                <div className="cg-summary-header">Contract summary</div>
+                <SummaryRow label="Circle name"    value={form.groupName || "—"} />
+                <SummaryRow label="Type"           value={form.groupType} />
+                <SummaryRow label="Members"        value={form.memberLimit} />
+                <SummaryRow label="Contribution"   value={`${form.contributionAmount} ETH`} highlight />
+                <SummaryRow label="Stake"          value={`${form.stakeAmount} ETH`} highlight />
+                <SummaryRow label="Penalty"        value={`${form.penaltyAmount} ETH`} />
+                <SummaryRow label="Grace period"   value={`${form.gracePeriodDays} days`} />
+                <SummaryRow label="Ejection after" value={`${form.ejectionThreshold} defaults`} />
+                <div className="cg-summary-warning">
+                  ⚠ Once deployed these rules cannot be changed
+                </div>
               </div>
             </div>
           )}
 
-          <div style={{ display: "flex", gap: "12px", marginTop: "24px" }}>
+          {/* Navigation buttons */}
+          <div className="cg-nav-btns">
             {step > 1 && (
-              <button onClick={() => setStep(s => s - 1)}
-                style={{ flex: 1, padding: "14px", backgroundColor: "transparent",
-                  border: "1px solid #334155", borderRadius: "8px",
-                  color: "#94a3b8", fontSize: "15px" }}>
+              <button className="cg-btn-secondary" onClick={() => setStep(s => s - 1)}>
                 ← Back
               </button>
             )}
             {step < 3 ? (
-              <button onClick={() => setStep(s => s + 1)}
-                style={{ flex: 1, padding: "14px", backgroundColor: "#f59e0b",
-                  border: "none", borderRadius: "8px", color: "#0f172a",
-                  fontSize: "15px", fontWeight: "bold" }}>
+              <button className="cg-btn-primary" onClick={() => setStep(s => s + 1)}>
                 Next →
               </button>
             ) : (
-              <button onClick={deploy} disabled={loading}
-                style={{ flex: 1, padding: "14px",
-                  backgroundColor: loading ? "#64748b" : "#4ade80",
-                  border: "none", borderRadius: "8px", color: "#0f172a",
-                  fontSize: "15px", fontWeight: "bold" }}>
-                {loading ? "Deploying..." : "🚀 Deploy Contract"}
+              <button className="cg-btn-deploy" onClick={deploy} disabled={loading}>
+                {loading ? "Deploying..." : "Deploy circle →"}
               </button>
             )}
           </div>
+
         </div>
-      </div>
+      </main>
     </div>
   );
 }
