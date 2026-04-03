@@ -214,8 +214,8 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
         {/* JOIN GROUP */}
         {group.status === "Open" && !group.isMember && (
           <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
-            padding: "24px", border: "1px solid #f59e0b", marginBottom: "20px" }}>
-            <h3 style={{ color: "#f59e0b", marginBottom: "16px" }}>Join This Group</h3>
+            padding: "24px", border: "1px solid #5B5FEB", marginBottom: "20px" }}>
+            <h3 style={{ color: "#5B5FEB", marginBottom: "16px" }}>Join This Circle</h3>
             <p style={{ color: "#64748b", marginBottom: "16px" }}>
               Stake required: <strong style={{ color: "#fff" }}>{group.stake} ETH</strong>
             </p>
@@ -238,11 +238,11 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
             ))}
 
             <button onClick={joinGroup} disabled={joining}
-              style={{ width: "100%", padding: "14px", marginTop: "8px",
-                backgroundColor: joining ? "#64748b" : "#f59e0b",
-                border: "none", borderRadius: "8px", color: "#0f172a",
+              style={{ width: "100%", padding: "14px", marginTop: "8px", height: "52px",
+                backgroundColor: joining ? "#64748b" : "#5B5FEB",
+                border: "none", borderRadius: "8px", color: "#fff",
                 fontSize: "16px", fontWeight: "bold" }}>
-              {joining ? "Joining..." : `🤝 Join & Pay ${group.stake} ETH Stake`}
+              {joining ? "Joining..." : "Join circle"}
             </button>
             <p style={{ color: "#64748b", fontSize: "12px", marginTop: "8px", textAlign: "center" }}>
               Your identity will be hashed and stored securely on blockchain

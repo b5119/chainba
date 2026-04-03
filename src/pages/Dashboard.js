@@ -8,6 +8,8 @@ export default function Dashboard({ account, onNavigate }) {
   const [reputation, setReputation] = useState(null);
   const [balance, setBalance] = useState("0");
   const [loading, setLoading] = useState(true);
+  const [copiedAddress, setCopiedAddress] = useState(null);
+  const [pasteAddress, setPasteAddress] = useState("");
 
   useEffect(() => {
     if (account) loadData();
@@ -60,8 +62,9 @@ export default function Dashboard({ account, onNavigate }) {
 
       const rep = new ethers.Contract(REPUTATION_ADDRESS, REPUTATION_ABI, signer);
       const repData = await rep.getMember(account);
+      const score = repData[0].toString();
       setReputation({
-        score: repData[0].toString(),
+        score: score === "0" ? "100" : score,
         totalCycles: repData[1].toString(),
         onTime: repData[2].toString(),
         late: repData[3].toString(),
@@ -76,6 +79,12 @@ export default function Dashboard({ account, onNavigate }) {
   };
 
   const statusColor = (s) => s === "Active" ? "#4ade80" : s === "Open" ? "#f59e0b" : "#64748b";
+
+  const handleCopyAddress = (address) => {
+    navigator.clipboard.writeText(address);
+    setCopiedAddress(address);
+    setTimeout(() => setCopiedAddress(null), 2000);
+  };
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#0f172a" }}>
@@ -150,6 +159,35 @@ export default function Dashboard({ account, onNavigate }) {
           </div>
         )}
 
+        {/* JOIN GROUP BY ADDRESS */}
+        <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+          padding: "20px", border: "1px solid #334155", marginBottom: "30px" }}>
+          <h3 style={{ color: "#f59e0b", fontSize: "16px", marginBottom: "12px" }}>
+            Join a Circle
+          </h3>
+          <p style={{ color: "#64748b", fontSize: "13px", marginBottom: "12px" }}>
+            Paste the circle address shared by the group leader
+          </p>
+          <div style={{ display: "flex", gap: "12px" }}>
+            <input
+              style={{ flex: 1, padding: "12px", backgroundColor: "#0f172a",
+                border: "1px solid #334155", borderRadius: "8px", color: "#fff",
+                fontSize: "14px", fontFamily: "'DM Mono', monospace" }}
+              placeholder="0x..."
+              value={pasteAddress}
+              onChange={(e) => setPasteAddress(e.target.value)}
+            />
+            <button
+              onClick={() => pasteAddress && onNavigate("group", pasteAddress)}
+              disabled={!pasteAddress}
+              style={{ padding: "12px 24px", backgroundColor: pasteAddress ? "#5B5FEB" : "#334155",
+                border: "none", borderRadius: "8px", color: pasteAddress ? "#fff" : "#64748b",
+                fontSize: "14px", fontWeight: "bold", cursor: pasteAddress ? "pointer" : "not-allowed" }}>
+              View
+            </button>
+          </div>
+        </div>
+
         {/* GROUPS */}
         <div style={{ display: "flex", justifyContent: "space-between",
           alignItems: "center", marginBottom: "16px" }}>
@@ -203,6 +241,20 @@ export default function Dashboard({ account, onNavigate }) {
                   {g.isLeader && (
                     <span style={{ color: "#a78bfa", fontSize: "13px" }}>👑 Leader</span>
                   )}
+                </div>
+                <div style={{ marginTop: "8px", fontSize: "11px", color: "#64748b",
+                  fontFamily: "'DM Mono', monospace", display: "flex",
+                  justifyContent: "space-between", alignItems: "center" }}>
+                  <span>
+                    {g.address.slice(0, 8)}...{g.address.slice(-6)}
+                  </span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleCopyAddress(g.address); }}
+                    style={{ backgroundColor: "transparent", border: "none",
+                      color: "#10b981", fontSize: "11px", cursor: "pointer",
+                      fontFamily: "'DM Mono', monospace" }}>
+                    {copiedAddress === g.address ? "✓ Copied!" : "Copy address"}
+                  </button>
                 </div>
               </div>
             ))}

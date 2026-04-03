@@ -6,6 +6,8 @@ import { toast } from "react-toastify";
 export default function CreateGroup({ account, onNavigate }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [deployedAddress, setDeployedAddress] = useState(null);
+  const [copiedSuccess, setCopiedSuccess] = useState(false);
   const [form, setForm] = useState({
     groupName: "", groupType: "Cash",
     contributionAmount: "", stakeAmount: "",
@@ -34,12 +36,23 @@ export default function CreateGroup({ account, onNavigate }) {
 
       toast.info("Deploying contract...");
       const receipt = await tx.wait();
+      
+      // Extract the deployed group address from the event
+      const event = receipt.events?.find(e => e.event === "GroupCreated");
+      const groupAddress = event?.args?.groupAddress;
+      
       toast.success("Group created on blockchain!");
-      onNavigate("dashboard");
+      setDeployedAddress(groupAddress);
     } catch (e) {
       toast.error("Error: " + e.message);
     }
     setLoading(false);
+  };
+
+  const handleCopyAddress = () => {
+    navigator.clipboard.writeText(deployedAddress);
+    setCopiedSuccess(true);
+    setTimeout(() => setCopiedSuccess(false), 2000);
   };
 
   const inputStyle = {
@@ -64,10 +77,51 @@ export default function CreateGroup({ account, onNavigate }) {
       </div>
 
       <div style={{ maxWidth: "600px", margin: "40px auto", padding: "0 20px" }}>
-        <h2 style={{ color: "#fff", marginBottom: "8px" }}>Create New Chilimba Group</h2>
-        <p style={{ color: "#64748b", marginBottom: "30px" }}>
-          Step {step} of 3 — Configure your group contract
-        </p>
+        
+        {/* SUCCESS SCREEN */}
+        {deployedAddress ? (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+              padding: "40px", border: "1px solid #334155" }}>
+              <div style={{ fontSize: "64px", marginBottom: "16px" }}>✅</div>
+              <h2 style={{ color: "#4ade80", fontSize: "28px", marginBottom: "16px" }}>
+                Circle deployed!
+              </h2>
+              <p style={{ color: "#94a3b8", marginBottom: "24px" }}>
+                Share this address with members so they can join:
+              </p>
+              
+              <div style={{ backgroundColor: "#0f172a", borderRadius: "8px",
+                padding: "16px", marginBottom: "20px", border: "1px solid #334155" }}>
+                <p style={{ color: "#f59e0b", fontSize: "13px", wordBreak: "break-all",
+                  fontFamily: "'DM Mono', monospace" }}>
+                  {deployedAddress}
+                </p>
+              </div>
+
+              <button onClick={handleCopyAddress}
+                style={{ width: "100%", padding: "14px", marginBottom: "12px",
+                  backgroundColor: copiedSuccess ? "#4ade80" : "transparent",
+                  border: "1px solid #334155", borderRadius: "8px",
+                  color: copiedSuccess ? "#0f172a" : "#10b981",
+                  fontSize: "16px", fontWeight: "bold", fontFamily: "'DM Mono', monospace" }}>
+                {copiedSuccess ? "✓ Copied!" : "Copy address"}
+              </button>
+
+              <button onClick={() => onNavigate("dashboard")}
+                style={{ width: "100%", padding: "14px", backgroundColor: "#5B5FEB",
+                  border: "none", borderRadius: "8px", color: "#fff",
+                  fontSize: "16px", fontWeight: "bold" }}>
+                Go to dashboard →
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <h2 style={{ color: "#fff", marginBottom: "8px" }}>Create New Chilimba Group</h2>
+            <p style={{ color: "#64748b", marginBottom: "30px" }}>
+              Step {step} of 3 — Configure your group contract
+            </p>
 
         {/* PROGRESS */}
         <div style={{ display: "flex", gap: "8px", marginBottom: "30px" }}>
@@ -209,6 +263,8 @@ export default function CreateGroup({ account, onNavigate }) {
             )}
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
