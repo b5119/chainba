@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { FACTORY_ADDRESS, FACTORY_ABI, GROUP_ABI, REPUTATION_ABI, REPUTATION_ADDRESS } from "../contracts/config";
 import { toast } from "react-toastify";
+import { formatShortDualCurrency } from "../utils/currency";
 
 export default function Dashboard({ account, onNavigate }) {
   const [groups, setGroups] = useState([]);
@@ -230,8 +231,8 @@ export default function Dashboard({ account, onNavigate }) {
                 <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "4px" }}>
                   Type: {g.type}
                 </p>
-                <p style={{ color: "#f59e0b", fontSize: "18px", fontWeight: "bold" }}>
-                  {g.contribution} ETH / cycle
+                <p style={{ color: "#f59e0b", fontSize: "14px", fontWeight: "bold" }}>
+                  {formatShortDualCurrency(g.contribution)} / cycle
                 </p>
                 <div style={{ display: "flex", justifyContent: "space-between",
                   marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #334155" }}>

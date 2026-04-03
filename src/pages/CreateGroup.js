@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ethers } from "ethers";
 import { FACTORY_ADDRESS, FACTORY_ABI } from "../contracts/config";
 import { toast } from "react-toastify";
+import CurrencyInput from "../components/CurrencyInput";
 
 export default function CreateGroup({ account, onNavigate }) {
   const [step, setStep] = useState(1);
@@ -87,8 +88,11 @@ export default function CreateGroup({ account, onNavigate }) {
               <h2 style={{ color: "#4ade80", fontSize: "28px", marginBottom: "16px" }}>
                 Circle deployed!
               </h2>
-              <p style={{ color: "#94a3b8", marginBottom: "24px" }}>
-                Share this address with members so they can join:
+              <p style={{ color: "#94a3b8", marginBottom: "8px" }}>
+                Your smart contract is live on the blockchain.
+              </p>
+              <p style={{ color: "#f59e0b", marginBottom: "24px", fontWeight: "bold" }}>
+                Next: Join as the first member by paying your {form.stakeAmount} ETH stake
               </p>
               
               <div style={{ backgroundColor: "#0f172a", borderRadius: "8px",
@@ -108,11 +112,18 @@ export default function CreateGroup({ account, onNavigate }) {
                 {copiedSuccess ? "✓ Copied!" : "Copy address"}
               </button>
 
-              <button onClick={() => onNavigate("dashboard")}
-                style={{ width: "100%", padding: "14px", backgroundColor: "#5B5FEB",
+              <button onClick={() => onNavigate("group", deployedAddress)}
+                style={{ width: "100%", padding: "14px", backgroundColor: "#0EA572",
                   border: "none", borderRadius: "8px", color: "#fff",
+                  fontSize: "16px", fontWeight: "bold", marginBottom: "12px" }}>
+                Join circle & pay stake →
+              </button>
+
+              <button onClick={() => onNavigate("dashboard")}
+                style={{ width: "100%", padding: "14px", backgroundColor: "transparent",
+                  border: "1px solid #334155", borderRadius: "8px", color: "#94a3b8",
                   fontSize: "16px", fontWeight: "bold" }}>
-                Go to dashboard →
+                View dashboard
               </button>
             </div>
           </div>
@@ -163,28 +174,35 @@ export default function CreateGroup({ account, onNavigate }) {
 
           {step === 2 && (
             <div>
-              <h3 style={{ color: "#f59e0b", marginBottom: "20px" }}>💰 Amounts (in ETH)</h3>
-              <label style={labelStyle}>
-                Contribution Amount per Cycle (ETH)
-                <input style={inputStyle} type="number" step="0.01"
-                  value={form.contributionAmount}
-                  onChange={e => update("contributionAmount", e.target.value)}
-                  placeholder="e.g. 1.0 (represents K1,000)" />
-              </label>
-              <label style={labelStyle}>
-                Security Stake per Member (ETH)
-                <input style={inputStyle} type="number" step="0.01"
-                  value={form.stakeAmount}
-                  onChange={e => update("stakeAmount", e.target.value)}
-                  placeholder="e.g. 0.2 (represents K200)" />
-              </label>
-              <label style={labelStyle}>
-                Late Penalty Amount (ETH)
-                <input style={inputStyle} type="number" step="0.01"
-                  value={form.penaltyAmount}
-                  onChange={e => update("penaltyAmount", e.target.value)}
-                  placeholder="e.g. 0.1 (represents K100)" />
-              </label>
+              <h3 style={{ color: "#f59e0b", marginBottom: "20px" }}>💰 Financial Settings</h3>
+              
+              <CurrencyInput
+                label="Contribution Amount per Cycle"
+                value={form.contributionAmount}
+                onChange={(ethValue) => update("contributionAmount", ethValue)}
+                placeholder="Enter amount"
+                hint="Amount each member contributes every cycle"
+              />
+              
+              <CurrencyInput
+                label="Security Stake per Member"
+                value={form.stakeAmount}
+                onChange={(ethValue) => update("stakeAmount", ethValue)}
+                placeholder="Enter amount"
+                hint="One-time deposit held as commitment (refunded on completion)"
+              />
+              
+              <CurrencyInput
+                label="Late Penalty Amount"
+                value={form.penaltyAmount}
+                onChange={(ethValue) => update("penaltyAmount", ethValue)}
+                placeholder="Enter amount"
+                hint="Penalty charged for late payments after grace period"
+              />
+
+              <p style={{ color: "#64748b", fontSize: "11px", fontStyle: "italic", marginTop: "16px" }}>
+                Exchange rates are approximate and for display only. All transactions are settled in ETH on-chain.
+              </p>
             </div>
           )}
 
@@ -231,6 +249,23 @@ export default function CreateGroup({ account, onNavigate }) {
                 ))}
                 <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "8px" }}>
                   ⚠ Once deployed these rules CANNOT be changed
+                </p>
+              </div>
+
+              {/* PAYMENT INFO BOX */}
+              <div style={{ backgroundColor: "#ECFDF5", border: "1px solid #0EA572",
+                borderRadius: "11px", padding: "14px 16px", marginTop: "16px" }}>
+                <p style={{ color: "#065F46", fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>
+                  💡 Deployment is free
+                </p>
+                <p style={{ color: "#047857", fontSize: "13px", marginBottom: "4px" }}>
+                  Creating the contract costs only gas fees (minimal on test networks).
+                </p>
+                <p style={{ color: "#047857", fontSize: "13px", marginBottom: "4px" }}>
+                  After deployment, you'll need to join as the first member by paying your stake: <strong>{form.stakeAmount} ETH</strong>
+                </p>
+                <p style={{ color: "#065F46", fontSize: "11px", marginTop: "8px", fontStyle: "italic" }}>
+                  MetaMask will show the stake amount when you join the circle
                 </p>
               </div>
             </div>

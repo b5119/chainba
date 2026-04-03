@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import { GROUP_ABI } from "../contracts/config";
 import { toast } from "react-toastify";
+import { formatDualCurrency } from "../utils/currency";
 
 export default function GroupView({ account, groupAddress, onNavigate }) {
   const [group, setGroup] = useState(null);
@@ -9,6 +10,9 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
   const [paying, setPaying] = useState(false);
   const [joining, setJoining] = useState(false);
   const [joinForm, setJoinForm] = useState({ name: "", nationalId: "", phone: "" });
+  const [contractExpanded, setContractExpanded] = useState(false);
+  const [contractBalance, setContractBalance] = useState("0");
+  const [copiedContract, setCopiedContract] = useState(false);
 
   useEffect(() => { if (groupAddress) loadGroup(); }, [groupAddress]);
 
@@ -58,6 +62,10 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
         contributionWei: contribution,
         stakeWei: stake
       });
+
+      // Load contract balance
+      const balance = await provider.getBalance(groupAddress);
+      setContractBalance(ethers.utils.formatEther(balance));
     } catch (e) {
       toast.error("Error loading group");
     }
@@ -97,6 +105,12 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
       toast.error("Error: " + e.message);
     }
     setPaying(false);
+  };
+
+  const handleCopyContract = () => {
+    navigator.clipboard.writeText(groupAddress);
+    setCopiedContract(true);
+    setTimeout(() => setCopiedContract(false), 2000);
   };
 
   if (loading) return (
@@ -145,13 +159,13 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)",
             gap: "16px", marginTop: "20px" }}>
             {[
-              { label: "Contribution", value: `${group.contribution} ETH` },
-              { label: "Stake", value: `${group.stake} ETH` },
+              { label: "Contribution", value: formatDualCurrency(group.contribution) },
+              { label: "Stake", value: formatDualCurrency(group.stake) },
               { label: "Members", value: `${group.memberCount}/${group.limit}` }
             ].map((s, i) => (
               <div key={i} style={{ backgroundColor: "#0f172a", borderRadius: "8px",
                 padding: "12px", textAlign: "center" }}>
-                <p style={{ color: "#f59e0b", fontSize: "18px", fontWeight: "bold" }}>{s.value}</p>
+                <p style={{ color: "#f59e0b", fontSize: i < 2 ? "14px" : "18px", fontWeight: "bold" }}>{s.value}</p>
                 <p style={{ color: "#64748b", fontSize: "12px" }}>{s.label}</p>
               </div>
             ))}
@@ -175,7 +189,7 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
             </p>
             <p style={{ color: "#94a3b8", marginTop: "8px" }}>
               Collected: <span style={{ color: "#4ade80", fontWeight: "bold" }}>
-                {group.cycleInfo.totalCollected} ETH
+                {formatDualCurrency(group.cycleInfo.totalCollected)}
               </span>
             </p>
             <p style={{ color: "#94a3b8", marginTop: "8px" }}>
@@ -198,7 +212,7 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
                       backgroundColor: paying ? "#64748b" : "#4ade80",
                       border: "none", borderRadius: "8px", color: "#0f172a",
                       fontSize: "16px", fontWeight: "bold", marginTop: "8px" }}>
-                    {paying ? "Processing..." : `💸 Pay ${group.contribution} ETH`}
+                    {paying ? "Processing..." : `💸 Pay ${formatDualCurrency(group.contribution)}`}
                   </button>
                 )}
                 {group.memberStatus === "Paid" && (
@@ -217,7 +231,7 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
             padding: "24px", border: "1px solid #5B5FEB", marginBottom: "20px" }}>
             <h3 style={{ color: "#5B5FEB", marginBottom: "16px" }}>Join This Circle</h3>
             <p style={{ color: "#64748b", marginBottom: "16px" }}>
-              Stake required: <strong style={{ color: "#fff" }}>{group.stake} ETH</strong>
+              Stake required: <strong style={{ color: "#fff" }}>{formatDualCurrency(group.stake)}</strong>
             </p>
 
             {[["Full Name", "name", "Your full name"],
@@ -267,6 +281,139 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
               fontSize: "13px" }}>
             📋 Copy Address
           </button>
+        </div>
+
+        {/* CONTRACT TRANSPARENCY */}
+        <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+          padding: "20px", border: "1px solid #334155", marginTop: "20px" }}>
+          
+          {/* COLLAPSED VIEW */}
+          {!contractExpanded ? (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+              cursor: "pointer" }} onClick={() => setContractExpanded(true)}>
+              <div style={{ flex: 1 }}>
+                <span style={{ color: "#94a3b8", fontSize: "14px", fontWeight: "bold" }}>
+                  Smart Contract
+                </span>
+                <span style={{ color: "#64748b", fontSize: "12px", marginLeft: "12px",
+                  fontFamily: "'DM Mono', monospace" }}>
+                  {groupAddress.slice(0, 10)}...{groupAddress.slice(-8)}
+                </span>
+              </div>
+              <button style={{ color: "#f59e0b", fontSize: "13px", background: "none",
+                border: "none", cursor: "pointer" }}>
+                View details ▼
+              </button>
+            </div>
+          ) : (
+            /* EXPANDED VIEW */
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+                <h3 style={{ color: "#f59e0b", fontSize: "16px", fontWeight: "bold" }}>
+                  Contract Details
+                </h3>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={loadGroup}
+                    style={{ padding: "6px 12px", backgroundColor: "transparent",
+                      border: "1px solid #334155", borderRadius: "6px", color: "#94a3b8",
+                      fontSize: "12px", cursor: "pointer" }}>
+                    🔄 Refresh
+                  </button>
+                  <button onClick={() => setContractExpanded(false)}
+                    style={{ color: "#64748b", fontSize: "13px", background: "none",
+                      border: "none", cursor: "pointer" }}>
+                    ▲ Collapse
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: "#F7F9FC", border: "1px solid #E4E8EF",
+                borderRadius: "16px", padding: "20px" }}>
+                
+                {/* Deployed Parameters */}
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase",
+                    marginBottom: "12px", fontFamily: "'DM Sans', sans-serif" }}>
+                    DEPLOYED PARAMETERS
+                  </h4>
+                  {[
+                    ["Contract address", groupAddress, true],
+                    ["Group name", group.name, false],
+                    ["Leader address", group.leader, false],
+                    ["Status", group.status, false],
+                    ["Member limit", group.limit.toString(), false],
+                    ["Current members", group.memberCount.toString(), false]
+                  ].map(([label, value, isCopyable]) => (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between",
+                      padding: "8px 0", borderBottom: "1px solid #E4E8EF" }}>
+                      <span style={{ color: "#64748b", fontSize: "13px" }}>{label}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ color: "#1e293b", fontSize: "13px",
+                          fontFamily: "'DM Mono', monospace" }}>
+                          {value.length > 42 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value}
+                        </span>
+                        {isCopyable && (
+                          <button onClick={handleCopyContract}
+                            style={{ padding: "2px 8px", backgroundColor: "transparent",
+                              border: "1px solid #E4E8EF", borderRadius: "4px",
+                              color: copiedContract ? "#0EA572" : "#64748b",
+                              fontSize: "10px", cursor: "pointer",
+                              fontFamily: "'DM Mono', monospace" }}>
+                            {copiedContract ? "✓" : "Copy"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Financial Parameters */}
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase",
+                    marginBottom: "12px", fontFamily: "'DM Sans', sans-serif" }}>
+                    FINANCIAL PARAMETERS
+                  </h4>
+                  {[
+                    ["Contribution/cycle", formatDualCurrency(group.contribution)],
+                    ["Security stake", formatDualCurrency(group.stake)],
+                    ["Contract ETH held", formatDualCurrency(contractBalance)]
+                  ].map(([label, value]) => (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between",
+                      padding: "8px 0", borderBottom: "1px solid #E4E8EF" }}>
+                      <span style={{ color: "#64748b", fontSize: "13px" }}>{label}</span>
+                      <span style={{ color: "#1e293b", fontSize: "13px",
+                        fontFamily: "'DM Mono', monospace" }}>
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Cycle State */}
+                {group.status === "Active" && (
+                  <div>
+                    <h4 style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase",
+                      marginBottom: "12px", fontFamily: "'DM Sans', sans-serif" }}>
+                      CYCLE STATE
+                    </h4>
+                    {[
+                      ["Current cycle", (group.currentCycle + 1).toString()],
+                      ["Paid this round", `${group.cycleInfo?.completed ? group.memberCount : "..."} of ${group.memberCount} members`]
+                    ].map(([label, value]) => (
+                      <div key={label} style={{ display: "flex", justifyContent: "space-between",
+                        padding: "8px 0", borderBottom: "1px solid #E4E8EF" }}>
+                        <span style={{ color: "#64748b", fontSize: "13px" }}>{label}</span>
+                        <span style={{ color: "#1e293b", fontSize: "13px",
+                          fontFamily: "'DM Mono', monospace" }}>
+                          {value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,0 +1,55 @@
+.currency-input-wrapper {
+  margin-bottom: 12px;
+}
+
+.currency-input-container {
+  display: flex;
+  align-items: stretch;
+}
+
+.currency-input-field {
+  flex: 1;
+  padding: 12px;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-right: none;
+  border-radius: 11px 0 0 11px;
+  color: #fff;
+  font-size: 16px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+}
+
+.currency-input-field:focus {
+  border-color: #f59e0b;
+}
+
+.currency-input-field::placeholder {
+  color: #475569;
+}
+
+.currency-selector {
+  padding: 0 12px;
+  background-color: #F7F9FC;
+  border: 1px solid #334155;
+  border-left: none;
+  border-radius: 0 11px 11px 0;
+  color: #1e293b;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  min-width: 80px;
+}
+
+.currency-selector:focus {
+  border-color: #f59e0b;
+}
+
+.currency-conversion {
+  color: #64748b;
+  font-size: 12px;
+  margin-top: 4px;
+  font-family: 'DM Mono', monospace;
+}
