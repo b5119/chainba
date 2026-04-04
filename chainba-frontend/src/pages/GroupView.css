@@ -369,6 +369,66 @@
 .gv-tx-confirmed { background: #ECFDF5; color: #065F46; border: 1px solid #10B98133; }
 .gv-tx-error     { background: #FEF2F2; color: #991B1B; border: 1px solid #EF444433; }
 
+/* ── Contract Transparency ── */
+.gv-contract-details {
+  cursor: pointer;
+}
+
+.gv-contract-summary {
+  padding: 14px;
+  background: #F1F5F9;
+  border-radius: 8px;
+  font-weight: 500;
+  color: #0F172A;
+  user-select: none;
+  list-style: none;
+}
+
+.gv-contract-summary::-webkit-details-marker {
+  display: none;
+}
+
+.gv-contract-summary::before {
+  content: "▶ ";
+  display: inline-block;
+  margin-right: 6px;
+  transition: transform 0.2s;
+}
+
+.gv-contract-details[open] .gv-contract-summary::before {
+  transform: rotate(90deg);
+}
+
+.gv-contract-content {
+  padding: 12px 0;
+  font-size: 13px;
+}
+
+.gv-contract-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.gv-contract-row:last-child {
+  border-bottom: none;
+}
+
+.gv-contract-row span {
+  color: #64748B;
+}
+
+.gv-contract-row code {
+  font-family: 'DM Mono', monospace;
+  color: #0F172A;
+  background: #F8FAFC;
+  padding: 4px 8px;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .gv-stats-row {
