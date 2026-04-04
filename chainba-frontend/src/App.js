@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Landing from "./pages/Landing";
 import LandingV2 from "./pages/LandingV2";
 import Dashboard from "./pages/Dashboard";
 import CreateGroup from "./pages/CreateGroup";
@@ -139,11 +138,6 @@ export default function App() {
     }
     return <Admin onNavigate={navigate} onLogout={handleLogout} />;
   }
-
-  // ── Original landing (preserved, accessible via navigate("landing")) ──────
-  if (page === "landing") return (
-    <Landing account={account} onConnect={connectWallet} onRegister={() => setPage("register")} onLogin={() => setPage("login")} onNavigate={navigate} />
-  );
 
   // ── New landing v2 ────────────────────────────────────────────────────────
   if (page === "landingV2") return (
