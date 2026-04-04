@@ -22,14 +22,17 @@ export const GROUP_ABI = [
   "function status() view returns (uint8)",
   "function currentCycle() view returns (uint256)",
   "function getMemberCount() view returns (uint256)",
+  "function getMembers() view returns (address[])",
   "function getCurrentBeneficiary() view returns (address)",
-  "function getCycleInfo(uint256) view returns (address,uint256,bool,uint256)",
-  "function members(address) view returns (address,bytes32,uint8,uint256,bool,bool)",
+  "function getCycleInfo(uint256) view returns (address,uint256,uint256,bool)",
+  "function members(address) view returns (string,bytes32,bool,bool,bool,uint256)",
+  "function memberList(uint256) view returns (address)",
+  "function hasPaid(address,uint256) view returns (bool)",
   "function joinGroup(string,string,string) payable",
   "function payContribution() payable",
   "function flagDefault(address)",
-  "event MemberJoined(address,bytes32)",
-  "event ContributionPaid(address,uint256,uint256)",
+  "event MemberJoined(address,string)",
+  "event ContributionPaid(address,uint256,bool)",
   "event PayoutReleased(address,uint256,uint256)"
 ];
 

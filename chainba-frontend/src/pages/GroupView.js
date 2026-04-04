@@ -111,24 +111,25 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
       const count = await contract.getMemberCount();
       setMemberCount(Number(count));
 
-      // Member list — iterate up to memberLimit
-      const memberList = [];
+      // Member list using getMembers()
+      let memberList = [];
       const paid = [];
       let userIsMember = false;
 
-      for (let i = 0; i < Number(limit); i++) {
-        try {
-          const addr = await contract.memberList(i);
-          if (!addr || addr === ethers.constants.AddressZero) break;
-          memberList.push(addr);
+      try {
+        memberList = await contract.getMembers();
+        
+        // Check payment status for each member
+        for (let i = 0; i < memberList.length; i++) {
+          const addr = memberList[i];
           const hasPaid = await contract.hasPaid(addr, Number(cycle));
           paid.push(hasPaid);
           if (account && addr.toLowerCase() === account.toLowerCase()) {
             userIsMember = true;
           }
-        } catch {
-          break;
         }
+      } catch (e) {
+        console.log("Error loading members:", e);
       }
 
       setMembers(memberList);

@@ -61,17 +61,15 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
           // Check if active account is leader
           const isLeader = leader.toLowerCase() === activeAddr.toLowerCase();
           
-          // Check if active account is in member list
+          // Check if active account is in member list using getMembers()
           let isMember = false;
-          for (let i = 0; i < limit.toNumber(); i++) {
-            try {
-              const memberAddr = await g.memberList(i);
-              if (!memberAddr || memberAddr === ethers.constants.AddressZero) break;
-              if (memberAddr.toLowerCase() === activeAddr.toLowerCase()) {
-                isMember = true;
-                break;
-              }
-            } catch { break; }
+          try {
+            const memberAddresses = await g.getMembers();
+            isMember = memberAddresses.some(
+              m => m.toLowerCase() === activeAddr.toLowerCase()
+            );
+          } catch (e) {
+            console.log("Could not get members for", addr, e.message);
           }
           
           if (isMember || isLeader) {
