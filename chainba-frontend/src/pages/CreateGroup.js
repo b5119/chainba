@@ -46,7 +46,7 @@ function SummaryRow({ label, value, highlight }) {
   );
 }
 
-export default function CreateGroup({ account, onNavigate }) {
+export default function CreateGroup({ account, backendUser, onNavigate }) {
   const [step,    setStep]    = useState(1);
   const [loading, setLoading] = useState(false);
   const [form,    setForm]    = useState({
@@ -75,7 +75,9 @@ export default function CreateGroup({ account, onNavigate }) {
       );
       toast.info("Deploying circle contract...");
       await tx.wait();
-      toast.success("✅ Circle created on blockchain!");
+      const stakeAmount = form.stakeAmount;
+      const stakeZMW = (parseFloat(stakeAmount) * 27000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      toast.success(`✅ Circle created! Now go back to join and pay stake of ${stakeAmount} ETH · K${stakeZMW}`);
       onNavigate("dashboard");
     } catch (e) {
       toast.error("Error: " + (e.reason || e.message));
@@ -193,9 +195,9 @@ export default function CreateGroup({ account, onNavigate }) {
                  <SummaryRow label="Penalty"        value={`${form.penaltyAmount} ETH · K${(parseFloat(form.penaltyAmount) * 27000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`} />
                  <SummaryRow label="Grace period"   value={`${form.gracePeriodDays} days`} />
                  <SummaryRow label="Ejection after" value={`${form.ejectionThreshold} defaults`} />
-                 <div className="cg-summary-warning">
-                   ⚠ Once deployed these rules cannot be changed. You'll need to pay the stake amount when you join.
-                 </div>
+                  <div className="cg-summary-warning">
+                    ⚠ Once deployed these rules cannot be changed. You'll join and pay the stake of {form.stakeAmount} ETH after creation — only ONE payment needed.
+                  </div>
                </div>
             </div>
           )}

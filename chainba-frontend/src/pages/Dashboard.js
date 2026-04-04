@@ -25,8 +25,12 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       
+      // Get active MetaMask address
+      const accounts = await window.ethereum.request({method:"eth_accounts"}); 
+      const activeAddr = accounts[0] || account;
+      
       // Get balance
-      const accounts = await window.ethereum.request({method:"eth_accounts"}); const activeAddr = accounts[0] || account; const bal = await provider.getBalance(activeAddr);
+      const bal = await provider.getBalance(activeAddr);
       setBalance(parseFloat(ethers.utils.formatEther(bal)).toFixed(4));
 
       // Get groups
@@ -53,9 +57,22 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
           const leader = await g.leader();
           const status = await g.status();
           const memberCount = await g.getMemberCount();
-          const memberInfo = await g.members(account);
-          const isMember = memberInfo[4];
-          const isLeader = leader.toLowerCase() === account.toLowerCase();
+          
+          // Check if active account is leader
+          const isLeader = leader.toLowerCase() === activeAddr.toLowerCase();
+          
+          // Check if active account is in member list
+          let isMember = false;
+          for (let i = 0; i < limit.toNumber(); i++) {
+            try {
+              const memberAddr = await g.memberList(i);
+              if (!memberAddr || memberAddr === ethers.constants.AddressZero) break;
+              if (memberAddr.toLowerCase() === activeAddr.toLowerCase()) {
+                isMember = true;
+                break;
+              }
+            } catch { break; }
+          }
           
           if (isMember || isLeader) {
             groupData.push({
@@ -75,7 +92,7 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
       // Get reputation
       try {
         const rep = new ethers.Contract(REPUTATION_ADDRESS, REPUTATION_ABI, signer);
-        const r = await rep.getMember(account);
+        const r = await rep.getMember(activeAddr);
         setReputation({
           score: r[0].toString(),
           totalCycles: r[1].toString(),

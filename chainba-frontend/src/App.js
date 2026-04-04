@@ -13,6 +13,7 @@ export default function App() {
   const [page, setPage] = useState("loading");
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [backendUser, setBackendUser] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const ADMIN_PHONE = "0000000000";
 
   useEffect(() => {
@@ -99,6 +100,9 @@ export default function App() {
       }
       return;
     }
+    if (p === "dashboard") {
+      setRefreshKey(k => k + 1); // Force Dashboard remount
+    }
     setPage(p);
     if (groupAddress) setSelectedGroup(groupAddress);
   };
@@ -150,14 +154,14 @@ export default function App() {
   );
 
   if (page === "dashboard") return (
-    <Dashboard account={activeAccount} backendUser={backendUser} onNavigate={navigate} onLogout={handleLogout} />
+    <Dashboard key={refreshKey} account={activeAccount} backendUser={backendUser} onNavigate={navigate} onLogout={handleLogout} />
   );
 
   if (page === "create") return (
-    <CreateGroup account={activeAccount} onNavigate={navigate} />
+    <CreateGroup account={activeAccount} backendUser={backendUser} onNavigate={navigate} />
   );
 
   if (page === "group") return (
-    <GroupView account={activeAccount} groupAddress={selectedGroup} onNavigate={navigate} />
+    <GroupView account={activeAccount} backendUser={backendUser} groupAddress={selectedGroup} onNavigate={navigate} />
   );
 }

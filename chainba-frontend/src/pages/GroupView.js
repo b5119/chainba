@@ -46,7 +46,7 @@ function MemberRow({ address, account, hasPaid, index }) {
 }
 
 // ─── Main GroupView ───────────────────────────────────────────────────────
-export default function GroupView({ account, groupAddress, onNavigate }) {
+export default function GroupView({ account, backendUser, groupAddress, onNavigate }) {
   const [groupData,    setGroupData]    = useState(null);
   const [members,      setMembers]      = useState([]);
   const [memberCount,  setMemberCount]  = useState(0);
@@ -66,7 +66,6 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
   
   // JOIN states
   const [joining,      setJoining]      = useState(false);
-  const [joinForm,     setJoinForm]     = useState({ fullName: "", nationalId: "", phone: "" });
 
   // ── Load group data ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -188,9 +187,13 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
 
   // ── Join circle (pay stake) ──────────────────────────────────────────────
   async function handleJoin() {
-    if (!joinForm.fullName || !joinForm.nationalId || !joinForm.phone) {
+    const fullName = backendUser?.fullName || "";
+    const nationalId = backendUser?.identityHash || "";
+    const phone = backendUser?.phone || "";
+    
+    if (!fullName || !nationalId || !phone) {
       setTxStatus("error");
-      setTxMessage("Please fill in all fields.");
+      setTxMessage("User account information not found. Please sign in again.");
       return;
     }
     
@@ -203,9 +206,9 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
       const contract = new ethers.Contract(groupAddress, GROUP_ABI, signer);
 
       const tx = await contract.joinGroup(
-        joinForm.fullName,
-        joinForm.nationalId,
-        joinForm.phone,
+        fullName,
+        nationalId,
+        phone,
         {
           value: groupData.stakeAmount,
         }
@@ -215,7 +218,6 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
 
       setTxStatus("confirmed");
       setTxMessage(`✓ Joined! Stake of ${formatDualCurrency(ethers.utils.formatEther(groupData.stakeAmount))} paid.`);
-      setJoinForm({ fullName: "", nationalId: "", phone: "" });
       await loadGroup();
     } catch (err) {
       setTxStatus("error");
@@ -430,53 +432,74 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
            </div>
          )}
 
-         {/* JOIN FORM — for non-members */}
-         {!isMember && (
-           <div className="gv-join-section">
-             <h3 style={{ marginBottom: "12px", color: "#0F172A" }}>
-               {isLeader ? "Pay Stake to Join Your Circle" : "Join this Circle"}
-             </h3>
-             <p style={{ fontSize: "13px", color: "#64748B", marginBottom: "16px" }}>
-               {isLeader 
-                 ? `As the leader, you must join and pay a stake of ${formatDualCurrency(stakeETH)} to activate the circle.`
-                 : `Pay a stake of ${formatDualCurrency(stakeETH)} to join this circle.`}
-             </p>
-             
-             <div className="gv-join-form">
-               <input
-                 type="text"
-                 placeholder="Full name"
-                 value={joinForm.fullName}
-                 onChange={(e) => setJoinForm({...joinForm, fullName: e.target.value})}
-                 disabled={joining}
-                 className="gv-form-input"
-               />
-               <input
-                 type="text"
-                 placeholder="National ID"
-                 value={joinForm.nationalId}
-                 onChange={(e) => setJoinForm({...joinForm, nationalId: e.target.value})}
-                 disabled={joining}
-                 className="gv-form-input"
-               />
-               <input
-                 type="tel"
-                 placeholder="Phone number"
-                 value={joinForm.phone}
-                 onChange={(e) => setJoinForm({...joinForm, phone: e.target.value})}
-                 disabled={joining}
-                 className="gv-form-input"
-               />
-               <button
-                 className="gv-btn-join"
-                 onClick={handleJoin}
-                 disabled={joining || !joinForm.fullName || !joinForm.nationalId || !joinForm.phone}
-               >
-                 {joining ? "Processing..." : `Join & Pay ${formatDualCurrency(stakeETH)}`}
-               </button>
-             </div>
-           </div>
-         )}
+          {/* JOIN FORM — for non-members */}
+          {!isMember && !backendUser && (
+            <div className="gv-join-section">
+              <h3 style={{ marginBottom: "12px", color: "#0F172A" }}>Join this Circle</h3>
+              <p style={{ fontSize: "13px", color: "#64748B" }}>
+                Please sign in to join this circle.
+              </p>
+              <button
+                className="gv-btn-contribute"
+                onClick={() => onNavigate("login")}
+                style={{ marginTop: "12px" }}
+              >
+                Sign In
+              </button>
+            </div>
+          )}
+
+          {/* JOIN CONFIRMATION — for authenticated non-members */}
+          {!isMember && backendUser && (
+            <div className="gv-join-section">
+              <h3 style={{ marginBottom: "16px", color: "#0F172A" }}>
+                {isLeader ? "Pay Stake to Join Your Circle" : "Join this Circle"}
+              </h3>
+              
+              {/* Confirmation card */}
+              <div style={{ 
+                padding: "16px", 
+                background: "#F0FDF4", 
+                border: "1px solid #DCFCE7",
+                borderRadius: "8px", 
+                marginBottom: "16px"
+              }}>
+                <div style={{ marginBottom: "12px" }}>
+                  <p style={{ fontSize: "12px", color: "#64748B", marginBottom: "4px" }}>Joining as</p>
+                  <p style={{ fontSize: "16px", fontWeight: "600", color: "#0F172A" }}>
+                    {backendUser.fullName}
+                  </p>
+                </div>
+                
+                <div>
+                  <p style={{ fontSize: "12px", color: "#64748B", marginBottom: "4px" }}>Stake required</p>
+                  <p style={{ fontSize: "16px", fontWeight: "600", color: "#0F172A" }}>
+                    {formatDualCurrency(stakeETH)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  className="gv-btn-join"
+                  onClick={handleJoin}
+                  disabled={joining}
+                  style={{ flex: 1, background: "#10B981", color: "white" }}
+                >
+                  {joining ? "Processing..." : "Confirm & Join"}
+                </button>
+                <button
+                  className="gv-btn-contribute"
+                  onClick={() => onNavigate("dashboard")}
+                  disabled={joining}
+                  style={{ flex: 1, background: "transparent", color: "#0F172A", border: "1px solid #E5E7EB" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
          {/* Actions */}
         <div className="gv-actions">
