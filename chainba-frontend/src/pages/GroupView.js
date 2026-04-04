@@ -1,371 +1,421 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-
 import { GROUP_ABI } from "../contracts/config";
-import "./GroupView.css";
+import { toast } from "react-toastify";
+import { formatDualCurrency } from "../utils/currency";
 
-// ─── Logo mark (matches Dashboard + Login) ────────────────────────────────
-function LogoMark() {
-  return (
-    <div className="gv-nav-logo-diamonds">
-      <div className="gv-diamond" style={{ width:13, height:13, background:"#10B981" }} />
-      <div className="gv-diamond" style={{ width:8, height:8, background:"#6366F1", marginLeft:"-3px", marginTop:"5px" }} />
-    </div>
-  );
-}
-
-// ─── Status badge ─────────────────────────────────────────────────────────
-function StatusBadge({ status }) {
-  const map = { 0:"open", 1:"active", 2:"completed" };
-  const label = map[status] ?? "unknown";
-  const cls = `gv-status-badge gv-status-${label}`;
-  return <span className={cls}>{label}</span>;
-}
-
-// ─── Member row — own component so future hooks are safe ──────────────────
-function MemberRow({ address, account, hasPaid, index }) {
-  const isYou = account && address.toLowerCase() === account.toLowerCase();
-  const initials = address ? address.slice(2,4).toUpperCase() : "??";
-  const truncated = address
-    ? `${address.slice(0,6)}...${address.slice(-4)}`
-    : "Unknown";
-
-  return (
-    <div className="gv-member-row">
-      <div className="gv-avatar">{initials}</div>
-      <span className="gv-member-address">
-        {truncated}
-        {isYou && <span className="gv-member-you">you</span>}
-      </span>
-      <span className={`gv-paid-badge ${hasPaid ? "gv-paid-yes" : "gv-paid-no"}`}>
-        {hasPaid ? "✓ Paid" : "⏳ Pending"}
-      </span>
-    </div>
-  );
-}
-
-// ─── Main GroupView ───────────────────────────────────────────────────────
 export default function GroupView({ account, groupAddress, onNavigate }) {
-  const [groupData,    setGroupData]    = useState(null);
-  const [members,      setMembers]      = useState([]);
-  const [memberCount,  setMemberCount]  = useState(0);
-  const [paidStatus,   setPaidStatus]   = useState([]);
-  const [currentCycle, setCurrentCycle] = useState(0);
-  const [beneficiary,  setBeneficiary]  = useState(null);
-  const [isMember,     setIsMember]     = useState(false);
-  const [isLeader,     setIsLeader]     = useState(false);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState("");
+  const [group, setGroup] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [joinForm, setJoinForm] = useState({ name: "", nationalId: "", phone: "" });
+  const [contractExpanded, setContractExpanded] = useState(false);
+  const [contractBalance, setContractBalance] = useState("0");
+  const [copiedContract, setCopiedContract] = useState(false);
 
-  // TX states
-  const [contributing, setContributing] = useState(false);
-  const [flagging,     setFlagging]     = useState(false);
-  const [txStatus,     setTxStatus]     = useState(""); // "pending"|"confirmed"|"error"
-  const [txMessage,    setTxMessage]    = useState("");
+  useEffect(() => { if (groupAddress) loadGroup(); }, [groupAddress]);
 
-  // ── Load group data ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!groupAddress) return;
-    loadGroup();
-    // eslint-disable-next-line
-  }, [groupAddress, account]);
-
-  async function loadGroup() {
-    setLoading(true);
-    setError("");
+  const loadGroup = async () => {
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const contract = new ethers.Contract(groupAddress, GROUP_ABI, provider);
+      const signer = provider.getSigner();
+      const g = new ethers.Contract(groupAddress, GROUP_ABI, signer);
 
-      const [
-        name, status, contribAmount, stakeAmt,
-        limit, cycle, leader,
-      ] = await Promise.all([
-        contract.groupName(),
-        contract.status(),
-        contract.contributionAmount(),
-        contract.stakeAmount(),
-        contract.memberLimit(),
-        contract.currentCycle(),
-        contract.leader(),
+      const [name, type, contribution, stake, limit, leader, status,
+        memberCount, currentCycle] = await Promise.all([
+        g.groupName(), g.groupType(), g.contributionAmount(),
+        g.stakeAmount(), g.memberLimit(), g.leader(),
+        g.status(), g.getMemberCount(), g.currentCycle()
       ]);
 
-      setGroupData({
-        name,
-        status: Number(status),
-        contributionAmount: contribAmount,
-        stakeAmount: stakeAmt,
-        memberLimit: Number(limit),
+      const memberInfo = await g.members(account);
+      const isMember = memberInfo[4];
+      const isEjected = memberInfo[5];
+      const memberStatus = ["Paid", "Pending", "Late", "Defaulted"][memberInfo[2]];
+
+      let beneficiary = null;
+      let cycleInfo = null;
+      if (status === 1) {
+        beneficiary = await g.getCurrentBeneficiary();
+        const ci = await g.getCycleInfo(currentCycle);
+        cycleInfo = {
+          beneficiary: ci[0],
+          totalCollected: ethers.utils.formatEther(ci[1]),
+          completed: ci[2],
+          deadline: new Date(ci[3].toNumber() * 1000).toLocaleDateString()
+        };
+      }
+
+      setGroup({
+        name, type,
+        contribution: ethers.utils.formatEther(contribution),
+        stake: ethers.utils.formatEther(stake),
+        limit: limit.toNumber(),
+        memberCount: memberCount.toNumber(),
+        leader,
+        status: ["Open", "Active", "Completed"][status],
+        currentCycle: currentCycle.toNumber(),
+        isMember, isEjected, memberStatus,
+        isLeader: leader.toLowerCase() === account.toLowerCase(),
+        beneficiary, cycleInfo,
+        contributionWei: contribution,
+        stakeWei: stake
       });
-      setCurrentCycle(Number(cycle));
 
-      if (leader && account) {
-        setIsLeader(leader.toLowerCase() === account.toLowerCase());
-      }
-
-      // Member count
-      const count = await contract.getMemberCount();
-      setMemberCount(Number(count));
-
-      // Member list — iterate up to memberLimit
-      const memberList = [];
-      const paid = [];
-      let userIsMember = false;
-
-      for (let i = 0; i < Number(limit); i++) {
-        try {
-          const addr = await contract.memberList(i);
-          if (!addr || addr === ethers.constants.AddressZero) break;
-          memberList.push(addr);
-          const hasPaid = await contract.hasPaid(addr, Number(cycle));
-          paid.push(hasPaid);
-          if (account && addr.toLowerCase() === account.toLowerCase()) {
-            userIsMember = true;
-          }
-        } catch {
-          break;
-        }
-      }
-
-      setMembers(memberList);
-      setPaidStatus(paid);
-      setIsMember(userIsMember);
-
-      // Beneficiary for active groups
-      if (Number(status) === 1) {
-        try {
-          const ben = await contract.getCurrentBeneficiary();
-          setBeneficiary(ben);
-        } catch {
-          setBeneficiary(null);
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      setError(`Error: ${err.message || err.reason || JSON.stringify(err)}`);
-    } finally {
-      setLoading(false);
+      // Load contract balance
+      const balance = await provider.getBalance(groupAddress);
+      setContractBalance(ethers.utils.formatEther(balance));
+    } catch (e) {
+      toast.error("Error loading group");
     }
-  }
+    setLoading(false);
+  };
 
-  // ── Pay contribution ─────────────────────────────────────────────────────
-  async function handleContribute() {
-    setContributing(true);
-    setTxStatus("pending");
-    setTxMessage("Waiting for wallet approval...");
+  const joinGroup = async () => {
+    setJoining(true);
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer   = await provider.getSigner();
-      const contract = new ethers.Contract(groupAddress, GROUP_ABI, signer);
-
-      const tx = await contract.payContribution({
-        value: groupData.contributionAmount,
-      });
-      setTxMessage("Transaction submitted — confirming...");
-      await tx.wait(1);
-
-      setTxStatus("confirmed");
-      setTxMessage("✓ Contribution confirmed!");
-      await loadGroup();
-    } catch (err) {
-      setTxStatus("error");
-      if (err.code === 4001 || err.code === "ACTION_REJECTED") {
-        setTxMessage("Transaction rejected.");
-      } else if (err.reason) {
-        setTxMessage(`Contract error: ${err.reason}`);
-      } else {
-        setTxMessage("Transaction failed. Please try again.");
-      }
-    } finally {
-      setContributing(false);
+      const signer = provider.getSigner();
+      const g = new ethers.Contract(groupAddress, GROUP_ABI, signer);
+      const tx = await g.joinGroup(joinForm.name, joinForm.nationalId, joinForm.phone,
+        { value: group.stakeWei });
+      toast.info("Joining group...");
+      await tx.wait();
+      toast.success("Successfully joined!");
+      loadGroup();
+    } catch (e) {
+      toast.error("Error joining: " + e.message);
     }
-  }
+    setJoining(false);
+  };
 
-  // ── Flag default ─────────────────────────────────────────────────────────
-  async function handleFlagDefault() {
-    const target = window.prompt("Enter member address to flag:");
-    if (!target) return;
-    setFlagging(true);
-    setTxStatus("pending");
-    setTxMessage("Flagging default on-chain...");
+  const payContribution = async () => {
+    setPaying(true);
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer   = await provider.getSigner();
-      const contract = new ethers.Contract(groupAddress, GROUP_ABI, signer);
-      const tx = await contract.flagDefault(target);
-      await tx.wait(1);
-      setTxStatus("confirmed");
-      setTxMessage("✓ Default flagged on-chain.");
-      await loadGroup();
-    } catch (err) {
-      setTxStatus("error");
-      setTxMessage(err.reason || "Failed to flag default.");
-    } finally {
-      setFlagging(false);
+      const signer = provider.getSigner();
+      const g = new ethers.Contract(groupAddress, GROUP_ABI, signer);
+      const tx = await g.payContribution({ value: group.contributionWei });
+      toast.info("Processing payment...");
+      await tx.wait();
+      toast.success("Contribution paid!");
+      loadGroup();
+    } catch (e) {
+      toast.error("Error: " + e.message);
     }
-  }
+    setPaying(false);
+  };
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
-  const paidCount  = paidStatus.filter(Boolean).length;
-  const totalCount = members.length;
-  const progress   = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
-  const alreadyPaid = account && members.some(
-    (m, i) => m.toLowerCase() === account.toLowerCase() && paidStatus[i]
-  );
+  const handleCopyContract = () => {
+    navigator.clipboard.writeText(groupAddress);
+    setCopiedContract(true);
+    setTimeout(() => setCopiedContract(false), 2000);
+  };
 
-  const contribETH = groupData
-    ? ethers.utils.formatEther(groupData.contributionAmount)
-    : "0";
-
-  
-
-  // ── Render states ────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="gv-page">
-      <div className="gv-state">
-        <div className="gv-spinner" />
-        <p className="gv-state-text">Loading circle...</p>
-      </div>
+    <div style={{ minHeight: "100vh", backgroundColor: "#0f172a",
+      display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <p style={{ color: "#f59e0b", fontSize: "20px" }}>Loading group...</p>
     </div>
   );
 
-  if (error) return (
-    <div className="gv-page">
-      <div className="gv-state">
-        <p style={{ color:"#EF4444", fontSize:14, textAlign:"center", maxWidth:400 }}>{error}</p>
-        <button className="gv-back-btn" onClick={() => onNavigate("dashboard")}>
-          ← Back to dashboard
-        </button>
-      </div>
-    </div>
-  );
+  const statusColor = { Open: "#f59e0b", Active: "#4ade80", Completed: "#64748b" };
+  const memberStatusColor = { Paid: "#4ade80", Pending: "#f59e0b", Late: "#fb923c", Defaulted: "#ef4444" };
 
-  // ── Main render ──────────────────────────────────────────────────────────
   return (
-    <div className="gv-page">
-
-      {/* Navbar */}
-      <nav className="gv-nav">
-        <div className="gv-nav-logo" onClick={() => onNavigate("landingV2")}>
-          <LogoMark />
-          <span className="gv-nav-wordmark" style={{ marginLeft:8 }}>ChainBa</span>
-        </div>
-        <button className="gv-back-btn" onClick={() => onNavigate("dashboard")}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#0f172a" }}>
+      <div style={{ backgroundColor: "#1e3a6e", padding: "16px 40px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        borderBottom: "3px solid #f59e0b" }}>
+        <h1 style={{ color: "#fff" }}>🪙 ChainBa</h1>
+        <button onClick={() => onNavigate("dashboard")}
+          style={{ backgroundColor: "transparent", color: "#94a3b8",
+            border: "1px solid #334155", padding: "10px 20px", borderRadius: "8px" }}>
           ← Dashboard
         </button>
-      </nav>
+      </div>
 
-      <main className="gv-main">
+      <div style={{ padding: "40px", maxWidth: "800px", margin: "0 auto" }}>
 
-        {/* Hero card */}
-        <div className="gv-hero">
-          <div className="gv-hero-top">
+        {/* GROUP HEADER */}
+        <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+          padding: "24px", border: "1px solid #334155", marginBottom: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <h1 className="gv-group-name">{groupData?.name || "Circle"}</h1>
-              <p className="gv-leader">
-                Contract: {groupAddress?.slice(0,8)}...{groupAddress?.slice(-6)}
+              <h2 style={{ color: "#fff", fontSize: "24px" }}>📦 {group.name}</h2>
+              <p style={{ color: "#64748b" }}>Type: {group.type}</p>
+              <p style={{ color: "#64748b", fontSize: "12px", marginTop: "4px" }}>
+                {groupAddress.slice(0, 10)}...{groupAddress.slice(-8)}
               </p>
             </div>
-            <StatusBadge status={groupData?.status} />
-          </div>
-
-          {/* Stats row */}
-          <div className="gv-stats-row">
-            <div className="gv-stat">
-              <div className="gv-stat-label">Contribution</div>
-              <div className="gv-stat-value">{contribETH} ETH</div>
-            </div>
-            <div className="gv-stat">
-              <div className="gv-stat-label">Members</div>
-              <div className="gv-stat-value">{memberCount} / {groupData?.memberLimit}</div>
-            </div>
-
-            <div className="gv-stat">
-              <div className="gv-stat-label">Current round</div>
-              <div className="gv-stat-value">{currentCycle}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Round progress */}
-        <div className="gv-section">
-          <h2 className="gv-section-heading">Round progress</h2>
-          <div className="gv-progress-bar-wrap">
-            <div className="gv-progress-bar-fill" style={{ width:`${progress}%` }} />
-          </div>
-          <p className="gv-progress-text">
-            {paidCount} of {totalCount} members have contributed this round
-          </p>
-          {beneficiary && groupData?.status === 1 && (
-            <div className="gv-payout-info">
-              Next payout → {beneficiary.slice(0,6)}...{beneficiary.slice(-4)}
-              {account && beneficiary.toLowerCase() === account.toLowerCase() && " (you!)"}
-            </div>
-          )}
-        </div>
-
-        {/* Members */}
-        <div className="gv-section">
-          <h2 className="gv-section-heading">
-            Members
-            <span style={{ fontSize:13, fontWeight:400, color:"#64748B", marginLeft:8 }}>
-              {memberCount} / {groupData?.memberLimit}
+            <span style={{ backgroundColor: statusColor[group.status] + "22",
+              color: statusColor[group.status], padding: "6px 16px",
+              borderRadius: "20px", fontWeight: "bold" }}>
+              {group.status}
             </span>
-          </h2>
-          <div className="gv-members-list">
-            {members.length === 0 ? (
-              <p style={{ fontSize:13, color:"#64748B" }}>No members yet.</p>
-            ) : (
-              members.map((addr, i) => (
-                <MemberRow
-                  key={addr}
-                  address={addr}
-                  account={account}
-                  hasPaid={paidStatus[i]}
-                  index={i}
-                />
-              ))
-            )}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)",
+            gap: "16px", marginTop: "20px" }}>
+            {[
+              { label: "Contribution", value: formatDualCurrency(group.contribution) },
+              { label: "Stake", value: formatDualCurrency(group.stake) },
+              { label: "Members", value: `${group.memberCount}/${group.limit}` }
+            ].map((s, i) => (
+              <div key={i} style={{ backgroundColor: "#0f172a", borderRadius: "8px",
+                padding: "12px", textAlign: "center" }}>
+                <p style={{ color: "#f59e0b", fontSize: i < 2 ? "14px" : "18px", fontWeight: "bold" }}>{s.value}</p>
+                <p style={{ color: "#64748b", fontSize: "12px" }}>{s.label}</p>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* TX status */}
-        {txStatus && (
-          <div className={`gv-tx-banner gv-tx-${txStatus}`}>
-            {txMessage}
+        {/* CYCLE INFO */}
+        {group.status === "Active" && group.cycleInfo && (
+          <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+            padding: "24px", border: "1px solid #334155", marginBottom: "20px" }}>
+            <h3 style={{ color: "#f59e0b", marginBottom: "16px" }}>
+              Cycle {group.currentCycle + 1} — Active
+            </h3>
+            <p style={{ color: "#94a3b8" }}>
+              Beneficiary: <span style={{ color: "#fff" }}>
+                {group.cycleInfo.beneficiary.slice(0, 8)}...
+                {group.cycleInfo.beneficiary.slice(-6)}
+                {group.cycleInfo.beneficiary.toLowerCase() === account.toLowerCase() && 
+                  " 🎉 (You!)"}
+              </span>
+            </p>
+            <p style={{ color: "#94a3b8", marginTop: "8px" }}>
+              Collected: <span style={{ color: "#4ade80", fontWeight: "bold" }}>
+                {formatDualCurrency(group.cycleInfo.totalCollected)}
+              </span>
+            </p>
+            <p style={{ color: "#94a3b8", marginTop: "8px" }}>
+              Deadline: <span style={{ color: "#fff" }}>{group.cycleInfo.deadline}</span>
+            </p>
+
+            {group.isMember && !group.isEjected && (
+              <div style={{ marginTop: "16px", padding: "16px",
+                backgroundColor: "#0f172a", borderRadius: "8px" }}>
+                <p style={{ color: "#94a3b8", marginBottom: "8px" }}>
+                  Your Status: <span style={{
+                    color: memberStatusColor[group.memberStatus],
+                    fontWeight: "bold" }}>
+                    {group.memberStatus}
+                  </span>
+                </p>
+                {(group.memberStatus === "Pending" || group.memberStatus === "Late") && (
+                  <button onClick={payContribution} disabled={paying}
+                    style={{ width: "100%", padding: "14px",
+                      backgroundColor: paying ? "#64748b" : "#4ade80",
+                      border: "none", borderRadius: "8px", color: "#0f172a",
+                      fontSize: "16px", fontWeight: "bold", marginTop: "8px" }}>
+                    {paying ? "Processing..." : `💸 Pay ${formatDualCurrency(group.contribution)}`}
+                  </button>
+                )}
+                {group.memberStatus === "Paid" && (
+                  <p style={{ color: "#4ade80", textAlign: "center", fontWeight: "bold" }}>
+                    ✅ You have paid this cycle!
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Actions */}
-        <div className="gv-actions">
-          {/* Contribute button */}
-          {isMember && groupData?.status === 1 && (
-            <button
-              className="gv-btn-contribute"
-              onClick={handleContribute}
-              disabled={contributing || alreadyPaid}
-            >
-              {alreadyPaid
-                ? "✓ Already contributed this round"
-                : contributing
-                  ? "Confirming..."
-                  : `Pay ${contribETH} ETH`}
-            </button>
-          )}
+        {/* JOIN GROUP */}
+        {group.status === "Open" && !group.isMember && (
+          <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+            padding: "24px", border: "1px solid #5B5FEB", marginBottom: "20px" }}>
+            <h3 style={{ color: "#5B5FEB", marginBottom: "16px" }}>Join This Circle</h3>
+            <p style={{ color: "#64748b", marginBottom: "16px" }}>
+              Stake required: <strong style={{ color: "#fff" }}>{formatDualCurrency(group.stake)}</strong>
+            </p>
 
-          {/* Flag default — leader only */}
-          {isLeader && groupData?.status === 1 && (
-            <button
-              className="gv-btn-flag"
-              onClick={handleFlagDefault}
-              disabled={flagging}
-            >
-              {flagging ? "Flagging..." : "Flag default"}
+            {[["Full Name", "name", "Your full name"],
+              ["National ID", "nationalId", "Your NRC number"],
+              ["Phone Number", "phone", "Your phone number"]
+            ].map(([label, key, placeholder]) => (
+              <div key={key} style={{ marginBottom: "12px" }}>
+                <label style={{ color: "#94a3b8", fontSize: "14px" }}>{label}</label>
+                <input
+                  style={{ width: "100%", padding: "10px", marginTop: "4px",
+                    backgroundColor: "#0f172a", border: "1px solid #334155",
+                    borderRadius: "6px", color: "#fff" }}
+                  placeholder={placeholder}
+                  value={joinForm[key]}
+                  onChange={e => setJoinForm(f => ({ ...f, [key]: e.target.value }))}
+                />
+              </div>
+            ))}
+
+            <button onClick={joinGroup} disabled={joining}
+              style={{ width: "100%", padding: "14px", marginTop: "8px", height: "52px",
+                backgroundColor: joining ? "#64748b" : "#5B5FEB",
+                border: "none", borderRadius: "8px", color: "#fff",
+                fontSize: "16px", fontWeight: "bold" }}>
+              {joining ? "Joining..." : "Join circle"}
             </button>
-          )}
+            <p style={{ color: "#64748b", fontSize: "12px", marginTop: "8px", textAlign: "center" }}>
+              Your identity will be hashed and stored securely on blockchain
+            </p>
+          </div>
+        )}
+
+        {/* GROUP ADDRESS TO SHARE */}
+        <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+          padding: "20px", border: "1px solid #334155" }}>
+          <h3 style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "8px" }}>
+            Share This Group Address With Members
+          </h3>
+          <p style={{ color: "#f59e0b", fontSize: "13px", wordBreak: "break-all",
+            backgroundColor: "#0f172a", padding: "10px", borderRadius: "6px" }}>
+            {groupAddress}
+          </p>
+          <button onClick={() => { navigator.clipboard.writeText(groupAddress);
+            toast.success("Address copied!"); }}
+            style={{ marginTop: "8px", padding: "8px 16px", backgroundColor: "transparent",
+              border: "1px solid #334155", borderRadius: "6px", color: "#94a3b8",
+              fontSize: "13px" }}>
+            📋 Copy Address
+          </button>
         </div>
 
-      </main>
+        {/* CONTRACT TRANSPARENCY */}
+        <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+          padding: "20px", border: "1px solid #334155", marginTop: "20px" }}>
+          
+          {/* COLLAPSED VIEW */}
+          {!contractExpanded ? (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+              cursor: "pointer" }} onClick={() => setContractExpanded(true)}>
+              <div style={{ flex: 1 }}>
+                <span style={{ color: "#94a3b8", fontSize: "14px", fontWeight: "bold" }}>
+                  Smart Contract
+                </span>
+                <span style={{ color: "#64748b", fontSize: "12px", marginLeft: "12px",
+                  fontFamily: "'DM Mono', monospace" }}>
+                  {groupAddress.slice(0, 10)}...{groupAddress.slice(-8)}
+                </span>
+              </div>
+              <button style={{ color: "#f59e0b", fontSize: "13px", background: "none",
+                border: "none", cursor: "pointer" }}>
+                View details ▼
+              </button>
+            </div>
+          ) : (
+            /* EXPANDED VIEW */
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+                <h3 style={{ color: "#f59e0b", fontSize: "16px", fontWeight: "bold" }}>
+                  Contract Details
+                </h3>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={loadGroup}
+                    style={{ padding: "6px 12px", backgroundColor: "transparent",
+                      border: "1px solid #334155", borderRadius: "6px", color: "#94a3b8",
+                      fontSize: "12px", cursor: "pointer" }}>
+                    🔄 Refresh
+                  </button>
+                  <button onClick={() => setContractExpanded(false)}
+                    style={{ color: "#64748b", fontSize: "13px", background: "none",
+                      border: "none", cursor: "pointer" }}>
+                    ▲ Collapse
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: "#F7F9FC", border: "1px solid #E4E8EF",
+                borderRadius: "16px", padding: "20px" }}>
+                
+                {/* Deployed Parameters */}
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase",
+                    marginBottom: "12px", fontFamily: "'DM Sans', sans-serif" }}>
+                    DEPLOYED PARAMETERS
+                  </h4>
+                  {[
+                    ["Contract address", groupAddress, true],
+                    ["Group name", group.name, false],
+                    ["Leader address", group.leader, false],
+                    ["Status", group.status, false],
+                    ["Member limit", group.limit.toString(), false],
+                    ["Current members", group.memberCount.toString(), false]
+                  ].map(([label, value, isCopyable]) => (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between",
+                      padding: "8px 0", borderBottom: "1px solid #E4E8EF" }}>
+                      <span style={{ color: "#64748b", fontSize: "13px" }}>{label}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ color: "#1e293b", fontSize: "13px",
+                          fontFamily: "'DM Mono', monospace" }}>
+                          {value.length > 42 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value}
+                        </span>
+                        {isCopyable && (
+                          <button onClick={handleCopyContract}
+                            style={{ padding: "2px 8px", backgroundColor: "transparent",
+                              border: "1px solid #E4E8EF", borderRadius: "4px",
+                              color: copiedContract ? "#0EA572" : "#64748b",
+                              fontSize: "10px", cursor: "pointer",
+                              fontFamily: "'DM Mono', monospace" }}>
+                            {copiedContract ? "✓" : "Copy"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Financial Parameters */}
+                <div style={{ marginBottom: "20px" }}>
+                  <h4 style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase",
+                    marginBottom: "12px", fontFamily: "'DM Sans', sans-serif" }}>
+                    FINANCIAL PARAMETERS
+                  </h4>
+                  {[
+                    ["Contribution/cycle", formatDualCurrency(group.contribution)],
+                    ["Security stake", formatDualCurrency(group.stake)],
+                    ["Contract ETH held", formatDualCurrency(contractBalance)]
+                  ].map(([label, value]) => (
+                    <div key={label} style={{ display: "flex", justifyContent: "space-between",
+                      padding: "8px 0", borderBottom: "1px solid #E4E8EF" }}>
+                      <span style={{ color: "#64748b", fontSize: "13px" }}>{label}</span>
+                      <span style={{ color: "#1e293b", fontSize: "13px",
+                        fontFamily: "'DM Mono', monospace" }}>
+                        {value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Cycle State */}
+                {group.status === "Active" && (
+                  <div>
+                    <h4 style={{ color: "#64748b", fontSize: "11px", textTransform: "uppercase",
+                      marginBottom: "12px", fontFamily: "'DM Sans', sans-serif" }}>
+                      CYCLE STATE
+                    </h4>
+                    {[
+                      ["Current cycle", (group.currentCycle + 1).toString()],
+                      ["Paid this round", `${group.cycleInfo?.completed ? group.memberCount : "..."} of ${group.memberCount} members`]
+                    ].map(([label, value]) => (
+                      <div key={label} style={{ display: "flex", justifyContent: "space-between",
+                        padding: "8px 0", borderBottom: "1px solid #E4E8EF" }}>
+                        <span style={{ color: "#64748b", fontSize: "13px" }}>{label}</span>
+                        <span style={{ color: "#1e293b", fontSize: "13px",
+                          fontFamily: "'DM Mono', monospace" }}>
+                          {value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

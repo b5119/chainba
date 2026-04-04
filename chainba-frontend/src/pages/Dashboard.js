@@ -1,255 +1,267 @@
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import { FACTORY_ADDRESS, FACTORY_ABI, GROUP_ABI, 
-         REPUTATION_ABI, REPUTATION_ADDRESS } from "../contracts/config";
+import { FACTORY_ADDRESS, FACTORY_ABI, GROUP_ABI, REPUTATION_ABI, REPUTATION_ADDRESS } from "../contracts/config";
 import { toast } from "react-toastify";
-import "./Dashboard.css";
+import { formatShortDualCurrency } from "../utils/currency";
 
-export default function Dashboard({ account, backendUser, onNavigate, onLogout }) {
+export default function Dashboard({ account, onNavigate }) {
   const [groups, setGroups] = useState([]);
   const [reputation, setReputation] = useState(null);
   const [balance, setBalance] = useState("0");
   const [loading, setLoading] = useState(true);
-  const [joinAddress, setJoinAddress] = useState("");
+  const [copiedAddress, setCopiedAddress] = useState(null);
+  const [pasteAddress, setPasteAddress] = useState("");
 
-  useEffect(() => { 
-    if (account) loadData(); 
-  // eslint-disable-next-line
+  useEffect(() => {
+    if (account) loadData();
   }, [account]);
 
   const loadData = async () => {
-    setLoading(true);
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
-      
-      // Get balance
-      const accounts = await window.ethereum.request({method:"eth_accounts"}); const activeAddr = accounts[0] || account; const bal = await provider.getBalance(activeAddr);
-      setBalance(parseFloat(ethers.utils.formatEther(bal)).toFixed(4));
 
-      // Get groups
+      const bal = await provider.getBalance(account);
+      setBalance(parseFloat(ethers.utils.formatEther(bal)).toFixed(2));
+
       const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, signer);
-      let allGroups = [];
-      try {
-        allGroups = await factory.getAllGroups();
-      } catch(e) {
-        console.log("Factory error:", e.message);
-        toast.error("Could not load groups — check Hardhat node is running");
-        setLoading(false);
-        return;
-      }
+      const myGroups = await factory.getLeaderGroups(account);
+      const allGroups = await factory.getAllGroups();
 
+      const combined = [...new Set([...myGroups, ...allGroups])];
       const groupData = [];
-      for (let addr of allGroups) {
+
+      for (let addr of combined) {
         try {
           const g = new ethers.Contract(addr, GROUP_ABI, signer);
-          const name = await g.groupName();
-          const type = await g.groupType();
-          const contribution = await g.contributionAmount();
-          const stake = await g.stakeAmount();
-          const limit = await g.memberLimit();
-          const leader = await g.leader();
-          const status = await g.status();
-          const memberCount = await g.getMemberCount();
+          const [name, type, contribution, stake, limit, leader, status, memberCount] =
+            await Promise.all([
+              g.groupName(), g.groupType(), g.contributionAmount(),
+              g.stakeAmount(), g.memberLimit(), g.leader(),
+              g.status(), g.getMemberCount()
+            ]);
+
           const memberInfo = await g.members(account);
           const isMember = memberInfo[4];
-          const isLeader = leader.toLowerCase() === account.toLowerCase();
-          
-          if (isMember || isLeader) {
+
+          if (isMember || leader.toLowerCase() === account.toLowerCase()) {
             groupData.push({
-              address: addr, name, type,
+              address: addr,
+              name, type,
               contribution: ethers.utils.formatEther(contribution),
               stake: ethers.utils.formatEther(stake),
-              limit: limit.toNumber(),
-              memberCount: memberCount.toNumber(),
-              status: ["Open","Active","Completed"][status],
-              isLeader
+              limit: limit.toString(),
+              memberCount: memberCount.toString(),
+              status: ["Open", "Active", "Completed"][status],
+              isLeader: leader.toLowerCase() === account.toLowerCase()
             });
           }
-        } catch(e) { console.log("Group error:", e); }
+        } catch (e) {}
       }
+
       setGroups(groupData);
 
-      // Get reputation
-      try {
-        const rep = new ethers.Contract(REPUTATION_ADDRESS, REPUTATION_ABI, signer);
-        const r = await rep.getMember(account);
-        setReputation({
-          score: r[0].toString(),
-          totalCycles: r[1].toString(),
-          onTime: r[2].toString(),
-          late: r[3].toString(),
-          defaults: r[4].toString(),
-          ejections: r[5].toString()
-        });
-      } catch(e) { 
-        console.log("Reputation not loaded:", e.message);
-        setReputation({ score:"100", totalCycles:"0", onTime:"0", late:"0", defaults:"0", ejections:"0" });
-      }
+      const rep = new ethers.Contract(REPUTATION_ADDRESS, REPUTATION_ABI, signer);
+      const repData = await rep.getMember(account);
+      const score = repData[0].toString();
+      setReputation({
+        score: score === "0" ? "100" : score,
+        totalCycles: repData[1].toString(),
+        onTime: repData[2].toString(),
+        late: repData[3].toString(),
+        defaults: repData[4].toString(),
+        ejections: repData[5].toString()
+      });
 
-    } catch(e) { 
-      console.error("Load error:", e);
-      toast.error("Error: " + e.message);
+    } catch (e) {
+      toast.error("Error loading data");
     }
     setLoading(false);
   };
 
-  // eslint-disable-next-line no-unused-vars
-        const statusColor = (s) =>
-    s === "Active" ? "#4ade80" : s === "Open" ? "#f59e0b" : "#64748b";
+  const statusColor = (s) => s === "Active" ? "#4ade80" : s === "Open" ? "#f59e0b" : "#64748b";
 
-  const walletShort = account
-    ? `${account.slice(0, 6)}...${account.slice(-4)}`
-    : "—";
-
-  const repScore = reputation ? parseInt(reputation.score, 10) : null;
-  const repTone =
-    repScore == null ? "neutral" : repScore > 80 ? "good" : repScore >= 60 ? "warn" : "bad";
-
-  const activeCircles = groups.filter((g) => g.status === "Active").length;
-  const totalContributed = groups
-    .reduce((sum, g) => sum + (Number.parseFloat(g.contribution) || 0), 0)
-    .toFixed(4);
-
-  const canSeeAdmin = backendUser?.phone === "0000000000";
+  const handleCopyAddress = (address) => {
+    navigator.clipboard.writeText(address);
+    setCopiedAddress(address);
+    setTimeout(() => setCopiedAddress(null), 2000);
+  };
 
   return (
-    <div className="dashPage">
-      <header className="dashNav">
-        <div className="dashNavInner">
-          <button className="dashBrand" type="button" onClick={() => onNavigate("landingV2")}>
-            <span className="dashLogo" aria-hidden="true">
-              <span className="dashDiamond dashDiamondA" />
-              <span className="dashDiamond dashDiamondB" />
-            </span>
-            <span className="dashBrandName">ChainBa</span>
-          </button>
+    <div style={{ minHeight: "100vh", backgroundColor: "#0f172a" }}>
 
-          <div className="dashNavRight">
-            <div className="dashWallet" title={account || ""}>
-              {walletShort}
+      {/* HEADER */}
+      <div style={{ backgroundColor: "#1e3a6e", padding: "16px 40px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        borderBottom: "3px solid #f59e0b" }}>
+        <h1 style={{ color: "#fff" }}>🪙 ChainBa</h1>
+        <div style={{ display: "flex", gap: "12px" }}>
+          <button onClick={() => onNavigate("create")}
+            style={{ backgroundColor: "#f59e0b", color: "#0f172a",
+              border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: "bold" }}>
+            + Create Group
+          </button>
+          <button onClick={() => onNavigate("landing")}
+            style={{ backgroundColor: "transparent", color: "#94a3b8",
+              border: "1px solid #334155", padding: "10px 20px", borderRadius: "8px" }}>
+            Disconnect
+          </button>
+        </div>
+      </div>
+
+      <div style={{ padding: "40px" }}>
+
+        {/* WALLET CARD */}
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "20px", marginBottom: "30px" }}>
+          <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+            padding: "24px", border: "1px solid #334155" }}>
+            <p style={{ color: "#64748b", fontSize: "14px" }}>Connected Wallet</p>
+            <p style={{ color: "#fff", fontSize: "16px", margin: "8px 0" }}>
+              {account?.slice(0, 10)}...{account?.slice(-8)}
+            </p>
+            <p style={{ color: "#f59e0b", fontSize: "28px", fontWeight: "bold" }}>
+              {balance} ETH
+            </p>
+            <p style={{ color: "#64748b", fontSize: "12px" }}>Hardhat Local Network</p>
+          </div>
+
+          {reputation && (
+            <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+              padding: "24px", border: "1px solid #334155", textAlign: "center" }}>
+              <p style={{ color: "#64748b", fontSize: "14px" }}>Reputation Score</p>
+              <p style={{ color: "#f59e0b", fontSize: "48px", fontWeight: "bold" }}>
+                {reputation.score}
+              </p>
+              <p style={{ color: "#94a3b8", fontSize: "12px" }}>/ 100</p>
+              <p style={{ color: reputation.score >= 80 ? "#4ade80" : reputation.score >= 50 ? "#f59e0b" : "#ef4444",
+                fontSize: "14px", fontWeight: "bold" }}>
+                {reputation.score >= 80 ? "⭐ EXCELLENT" : reputation.score >= 50 ? "⚠ FAIR" : "❌ POOR"}
+              </p>
             </div>
-            {canSeeAdmin && (
-              <button className="dashNavLink" type="button" onClick={() => onNavigate("admin")}>
-                Admin panel
-              </button>
-            )}
-            <button className="dashBtn dashBtnGhost" type="button" onClick={() => onNavigate("profile")}>
-              Profile
-            </button>
+          )}
+        </div>
+
+        {/* STATS */}
+        {reputation && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)",
+            gap: "16px", marginBottom: "30px" }}>
+            {[
+              { label: "Total Cycles", value: reputation.totalCycles, color: "#60a5fa" },
+              { label: "On-Time Payments", value: reputation.onTime, color: "#4ade80" },
+              { label: "Late Payments", value: reputation.late, color: "#f59e0b" },
+              { label: "Defaults", value: reputation.defaults, color: "#ef4444" }
+            ].map((s, i) => (
+              <div key={i} style={{ backgroundColor: "#1e293b", borderRadius: "10px",
+                padding: "16px", textAlign: "center", border: "1px solid #334155" }}>
+                <p style={{ color: s.color, fontSize: "28px", fontWeight: "bold" }}>{s.value}</p>
+                <p style={{ color: "#64748b", fontSize: "12px" }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* JOIN GROUP BY ADDRESS */}
+        <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+          padding: "20px", border: "1px solid #334155", marginBottom: "30px" }}>
+          <h3 style={{ color: "#f59e0b", fontSize: "16px", marginBottom: "12px" }}>
+            Join a Circle
+          </h3>
+          <p style={{ color: "#64748b", fontSize: "13px", marginBottom: "12px" }}>
+            Paste the circle address shared by the group leader
+          </p>
+          <div style={{ display: "flex", gap: "12px" }}>
+            <input
+              style={{ flex: 1, padding: "12px", backgroundColor: "#0f172a",
+                border: "1px solid #334155", borderRadius: "8px", color: "#fff",
+                fontSize: "14px", fontFamily: "'DM Mono', monospace" }}
+              placeholder="0x..."
+              value={pasteAddress}
+              onChange={(e) => setPasteAddress(e.target.value)}
+            />
             <button
-              className="dashBtn dashBtnOutline"
-              type="button"
-              onClick={() => (onLogout ? onLogout() : onNavigate("landingV2"))}
-            >
-              Logout
+              onClick={() => pasteAddress && onNavigate("group", pasteAddress)}
+              disabled={!pasteAddress}
+              style={{ padding: "12px 24px", backgroundColor: pasteAddress ? "#5B5FEB" : "#334155",
+                border: "none", borderRadius: "8px", color: pasteAddress ? "#fff" : "#64748b",
+                fontSize: "14px", fontWeight: "bold", cursor: pasteAddress ? "pointer" : "not-allowed" }}>
+              View
             </button>
           </div>
         </div>
-      </header>
 
-      <main className="dashMain">
-        <section className="dashStats" aria-label="Account stats">
-          <div className="dashStatCard">
-            <div className="dashStatLabel">ETH Balance</div>
-            <div className="dashStatValue dashStatValueMono dashStatValueEmerald">{balance} ETH</div>
+        {/* GROUPS */}
+        <div style={{ display: "flex", justifyContent: "space-between",
+          alignItems: "center", marginBottom: "16px" }}>
+          <h2 style={{ color: "#fff" }}>My Groups ({groups.length})</h2>
+        </div>
+
+        {loading ? (
+          <p style={{ color: "#64748b" }}>Loading groups...</p>
+        ) : groups.length === 0 ? (
+          <div style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+            padding: "60px", textAlign: "center", border: "1px dashed #334155" }}>
+            <p style={{ color: "#64748b", fontSize: "18px" }}>No groups yet</p>
+            <p style={{ color: "#475569", marginBottom: "20px" }}>
+              Create a group or join one with a group address
+            </p>
+            <button onClick={() => onNavigate("create")}
+              style={{ backgroundColor: "#f59e0b", color: "#0f172a",
+                border: "none", padding: "12px 28px", borderRadius: "8px", fontWeight: "bold" }}>
+              + Create Your First Group
+            </button>
           </div>
-
-          <div className="dashStatCard">
-            <div className="dashStatLabel">Reputation Score</div>
-            <div className={`dashStatValue dashStatValueMono dashRep ${repTone}`}>
-              {reputation?.score ?? "—"}
-              <span className="dashRepOutOf">/ 100</span>
-            </div>
-          </div>
-
-          <div className="dashStatCard">
-            <div className="dashStatLabel">Active Circles</div>
-            <div className="dashStatValue dashStatValueMono">{activeCircles}</div>
-          </div>
-
-          <div className="dashStatCard">
-            <div className="dashStatLabel">Total Contributed</div>
-            <div className="dashStatValue dashStatValueMono">{totalContributed} ETH</div>
-          </div>
-        </section>
-
-        <section className="dashCircles">
-          <div className="dashSectionHeader">
-            <h2 className="dashSectionTitle">Your circles</h2>
-            <div className="dashSectionActions">
-              <div className="dashQuickJoin" aria-label="View circle by address">
-                <input
-                  className="dashQuickJoinInput"
-                  value={joinAddress}
-                  onChange={(e) => setJoinAddress(e.target.value)}
-                  placeholder="Paste circle address (0x...)"
-                />
-                <button
-                  className="dashBtn dashBtnOutline"
-                  type="button"
-                  onClick={() => joinAddress && onNavigate("group", joinAddress)}
-                >
-                  View
-                </button>
-              </div>
-              <button className="dashBtn dashBtnPrimary" type="button" onClick={() => onNavigate("create")}>
-                Create circle
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="dashLoading">Loading...</div>
-          ) : groups.length === 0 ? (
-            <div className="dashEmpty">
-              <div className="dashEmptyArt" aria-hidden="true" />
-              <div className="dashEmptyTitle">No circles yet</div>
-              <div className="dashEmptySub">
-                Create a circle to start community savings on-chain.
-              </div>
-              <button className="dashBtn dashBtnPrimary dashBtnLarge" type="button" onClick={() => onNavigate("create")}>
-                Create your first circle
-              </button>
-            </div>
-          ) : (
-            <div className="dashGrid">
-              {groups.map((g) => (
-                <div key={g.address} className="dashCircleCard">
-                  <div className="dashCircleTop">
-                    <div className="dashCircleName">{g.name}</div>
-                    <span className={`dashBadge dashBadge-${g.status.toLowerCase()}`}>
-                      {g.status}
-                    </span>
-                  </div>
-
-                  <div className="dashCircleMeta">
-                    <div className="dashMetaItem">
-                      <div className="dashMetaLabel">Members</div>
-                      <div className="dashMetaValue">{g.memberCount}/{g.limit}</div>
-                    </div>
-                    <div className="dashMetaItem">
-                      <div className="dashMetaLabel">Contribution</div>
-                      <div className="dashMetaValue">{g.contribution} ETH / cycle</div>
-                    </div>
-                  </div>
-
-                  <div className="dashCircleActions">
-                    <button
-                      className="dashBtn dashBtnOutline dashBtnEmerald"
-                      type="button"
-                      onClick={() => onNavigate("group", g.address)}
-                    >
-                      View circle
-                    </button>
-                    {g.isLeader && <span className="dashLeader">Leader</span>}
-                  </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "16px" }}>
+            {groups.map((g, i) => (
+              <div key={i} onClick={() => onNavigate("group", g.address)}
+                style={{ backgroundColor: "#1e293b", borderRadius: "12px",
+                  padding: "24px", border: "1px solid #334155", cursor: "pointer",
+                  transition: "border 0.2s" }}
+                onMouseEnter={e => e.currentTarget.style.border = "1px solid #f59e0b"}
+                onMouseLeave={e => e.currentTarget.style.border = "1px solid #334155"}>
+                <div style={{ display: "flex", justifyContent: "space-between",
+                  alignItems: "flex-start", marginBottom: "12px" }}>
+                  <h3 style={{ color: "#fff" }}>📦 {g.name}</h3>
+                  <span style={{ backgroundColor: statusColor(g.status) + "22",
+                    color: statusColor(g.status), padding: "4px 10px",
+                    borderRadius: "20px", fontSize: "12px", fontWeight: "bold" }}>
+                    {g.status}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "4px" }}>
+                  Type: {g.type}
+                </p>
+                <p style={{ color: "#f59e0b", fontSize: "14px", fontWeight: "bold" }}>
+                  {formatShortDualCurrency(g.contribution)} / cycle
+                </p>
+                <div style={{ display: "flex", justifyContent: "space-between",
+                  marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #334155" }}>
+                  <span style={{ color: "#64748b", fontSize: "13px" }}>
+                    👥 {g.memberCount}/{g.limit} members
+                  </span>
+                  {g.isLeader && (
+                    <span style={{ color: "#a78bfa", fontSize: "13px" }}>👑 Leader</span>
+                  )}
+                </div>
+                <div style={{ marginTop: "8px", fontSize: "11px", color: "#64748b",
+                  fontFamily: "'DM Mono', monospace", display: "flex",
+                  justifyContent: "space-between", alignItems: "center" }}>
+                  <span>
+                    {g.address.slice(0, 8)}...{g.address.slice(-6)}
+                  </span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleCopyAddress(g.address); }}
+                    style={{ backgroundColor: "transparent", border: "none",
+                      color: "#10b981", fontSize: "11px", cursor: "pointer",
+                      fontFamily: "'DM Mono', monospace" }}>
+                    {copiedAddress === g.address ? "✓ Copied!" : "Copy address"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
