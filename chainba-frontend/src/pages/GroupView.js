@@ -82,24 +82,32 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
       const contract = new ethers.Contract(groupAddress, GROUP_ABI, provider);
 
       const [
-        name, status, contribAmount, stakeAmt,
-        limit, cycle, leader,
+        name, type, status, contribAmount, stakeAmt, penaltyAmt,
+        limit, gracePeriod, ejectionThresh, cycle, leader,
       ] = await Promise.all([
         contract.groupName(),
+        contract.groupType(),
         contract.status(),
         contract.contributionAmount(),
         contract.stakeAmount(),
+        contract.penaltyAmount(),
         contract.memberLimit(),
+        contract.gracePeriodDays(),
+        contract.ejectionThreshold(),
         contract.currentCycle(),
         contract.leader(),
       ]);
 
       setGroupData({
         name,
+        type,
         status: Number(status),
         contributionAmount: contribAmount,
         stakeAmount: stakeAmt,
+        penaltyAmount: penaltyAmt,
         memberLimit: Number(limit),
+        gracePeriod: Number(gracePeriod),
+        ejectionThreshold: Number(ejectionThresh),
       });
       setCurrentCycle(Number(cycle));
 
@@ -343,9 +351,33 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
                <div className="gv-stat-value">{currentCycle}</div>
              </div>
            </div>
-        </div>
+         </div>
 
-        {/* Round progress */}
+         {/* Beneficiary payout notification — show if user is current beneficiary and all paid */}
+         {beneficiary && account && beneficiary.toLowerCase() === account.toLowerCase() && progress === 100 && (
+           <div style={{
+             padding: "16px 20px",
+             background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+             color: "white",
+             borderRadius: "12px",
+             marginBottom: "24px",
+             boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)"
+           }}>
+             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+               <span style={{ fontSize: "24px" }}>💰</span>
+               <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700" }}>
+                 You're receiving payout this round!
+               </h3>
+             </div>
+             <p style={{ margin: "4px 0 0 36px", fontSize: "14px", opacity: 0.95 }}>
+               All members have contributed. You will receive{" "}
+               <strong>{formatDualCurrency(ethers.utils.formatEther(groupData?.contributionAmount.mul(memberCount) || "0"))}</strong>
+               {" "}once the cycle is completed.
+             </p>
+           </div>
+         )}
+
+         {/* Round progress */}
         <div className="gv-section">
           <h2 className="gv-section-heading">Round progress</h2>
           <div className="gv-progress-bar-wrap">
