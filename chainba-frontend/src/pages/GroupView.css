@@ -429,6 +429,62 @@
   word-break: break-all;
 }
 
+/* ── JOIN Form ── */
+.gv-join-section {
+  background: #F0FDF4;
+  border: 1px solid #D1FAE5;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.gv-join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gv-form-input {
+  padding: 12px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.gv-form-input:focus {
+  outline: none;
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.gv-form-input:disabled {
+  background: #F8FAFC;
+  color: #94A3B8;
+  cursor: not-allowed;
+}
+
+.gv-btn-join {
+  padding: 12px;
+  background: #10B981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.gv-btn-join:hover:not(:disabled) {
+  background: #059669;
+}
+
+.gv-btn-join:disabled {
+  background: #D1D5DB;
+  cursor: not-allowed;
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .gv-stats-row {

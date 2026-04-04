@@ -63,6 +63,10 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
   const [flagging,     setFlagging]     = useState(false);
   const [txStatus,     setTxStatus]     = useState(""); // "pending"|"confirmed"|"error"
   const [txMessage,    setTxMessage]    = useState("");
+  
+  // JOIN states
+  const [joining,      setJoining]      = useState(false);
+  const [joinForm,     setJoinForm]     = useState({ fullName: "", nationalId: "", phone: "" });
 
   // ── Load group data ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -182,6 +186,52 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
     }
   }
 
+  // ── Join circle (pay stake) ──────────────────────────────────────────────
+  async function handleJoin() {
+    if (!joinForm.fullName || !joinForm.nationalId || !joinForm.phone) {
+      setTxStatus("error");
+      setTxMessage("Please fill in all fields.");
+      return;
+    }
+    
+    setJoining(true);
+    setTxStatus("pending");
+    setTxMessage("Waiting for wallet approval to pay stake...");
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer   = await provider.getSigner();
+      const contract = new ethers.Contract(groupAddress, GROUP_ABI, signer);
+
+      const tx = await contract.joinGroup(
+        joinForm.fullName,
+        joinForm.nationalId,
+        joinForm.phone,
+        {
+          value: groupData.stakeAmount,
+        }
+      );
+      setTxMessage("Transaction submitted — confirming...");
+      await tx.wait(1);
+
+      setTxStatus("confirmed");
+      setTxMessage(`✓ Joined! Stake of ${formatDualCurrency(ethers.utils.formatEther(groupData.stakeAmount))} paid.`);
+      setJoinForm({ fullName: "", nationalId: "", phone: "" });
+      await loadGroup();
+    } catch (err) {
+      setTxStatus("error");
+      if (err.code === 4001 || err.code === "ACTION_REJECTED") {
+        setTxMessage("Transaction rejected.");
+      } else if (err.reason) {
+        setTxMessage(`Contract error: ${err.reason}`);
+      } else {
+        setTxMessage("Transaction failed. Please try again.");
+      }
+    } finally {
+      setJoining(false);
+    }
+  }
+
+
   // ── Flag default ─────────────────────────────────────────────────────────
   async function handleFlagDefault() {
     const target = window.prompt("Enter member address to flag:");
@@ -218,7 +268,9 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
     ? ethers.utils.formatEther(groupData.contributionAmount)
     : "0";
 
-  
+  const stakeETH = groupData
+    ? ethers.utils.formatEther(groupData.stakeAmount)
+    : "0";
 
   // ── Render states ────────────────────────────────────────────────────────
   if (loading) return (
@@ -265,6 +317,8 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
               <h1 className="gv-group-name">{groupData?.name || "Circle"}</h1>
               <p className="gv-leader">
                 Contract: {groupAddress?.slice(0,8)}...{groupAddress?.slice(-6)}
+                {isLeader && " · 👑 Leader"}
+                {!isMember && !isLeader && " · Join to participate"}
               </p>
             </div>
             <StatusBadge status={groupData?.status} />
@@ -369,14 +423,62 @@ export default function GroupView({ account, groupAddress, onNavigate }) {
            </details>
          </div>
 
-        {/* TX status */}
-        {txStatus && (
-          <div className={`gv-tx-banner gv-tx-${txStatus}`}>
-            {txMessage}
-          </div>
-        )}
+         {/* TX status */}
+         {txStatus && (
+           <div className={`gv-tx-banner gv-tx-${txStatus}`}>
+             {txMessage}
+           </div>
+         )}
 
-        {/* Actions */}
+         {/* JOIN FORM — for non-members */}
+         {!isMember && (
+           <div className="gv-join-section">
+             <h3 style={{ marginBottom: "12px", color: "#0F172A" }}>
+               {isLeader ? "Pay Stake to Join Your Circle" : "Join this Circle"}
+             </h3>
+             <p style={{ fontSize: "13px", color: "#64748B", marginBottom: "16px" }}>
+               {isLeader 
+                 ? `As the leader, you must join and pay a stake of ${formatDualCurrency(stakeETH)} to activate the circle.`
+                 : `Pay a stake of ${formatDualCurrency(stakeETH)} to join this circle.`}
+             </p>
+             
+             <div className="gv-join-form">
+               <input
+                 type="text"
+                 placeholder="Full name"
+                 value={joinForm.fullName}
+                 onChange={(e) => setJoinForm({...joinForm, fullName: e.target.value})}
+                 disabled={joining}
+                 className="gv-form-input"
+               />
+               <input
+                 type="text"
+                 placeholder="National ID"
+                 value={joinForm.nationalId}
+                 onChange={(e) => setJoinForm({...joinForm, nationalId: e.target.value})}
+                 disabled={joining}
+                 className="gv-form-input"
+               />
+               <input
+                 type="tel"
+                 placeholder="Phone number"
+                 value={joinForm.phone}
+                 onChange={(e) => setJoinForm({...joinForm, phone: e.target.value})}
+                 disabled={joining}
+                 className="gv-form-input"
+               />
+               <button
+                 className="gv-btn-join"
+                 onClick={handleJoin}
+                 disabled={joining || !joinForm.fullName || !joinForm.nationalId || !joinForm.phone}
+               >
+                 {joining ? "Processing..." : `Join & Pay ${formatDualCurrency(stakeETH)}`}
+               </button>
+             </div>
+           </div>
+         )}
+
+         {/* Actions */}
         <div className="gv-actions">
           {/* Contribute button */}
           {isMember && groupData?.status === 1 && (
