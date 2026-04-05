@@ -24,4 +24,30 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
+router.put('/update', authMiddleware, async (req, res) => {
+  try {
+    const { fullName, email, twoFactorEnabled, emailNotifications, smsNotifications } = req.body;
+    
+    const user = await User.findById(req.user.userId);
+    if (!user)
+      return res.status(404).json({ error: 'User not found' });
+
+    // Update only allowed fields
+    if (fullName !== undefined) user.fullName = fullName;
+    if (email !== undefined) user.email = email;
+    if (twoFactorEnabled !== undefined) user.twoFactorEnabled = twoFactorEnabled;
+    if (emailNotifications !== undefined) user.emailNotifications = emailNotifications;
+    if (smsNotifications !== undefined) user.smsNotifications = smsNotifications;
+
+    await user.save();
+
+    // Return updated user without sensitive data
+    const updatedUser = await User.findById(req.user.userId).select('-passwordHash -encryptedKey');
+    res.json(updatedUser);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
 module.exports = router;

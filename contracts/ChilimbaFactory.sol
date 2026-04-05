@@ -32,6 +32,16 @@ contract ChilimbaFactory is Ownable {
             reputationContract
         );
 
+        // Auto-authorize the newly created group to call reputation contract
+        // The reputation contract must have this factory authorized first
+        (bool success, ) = reputationContract.call(
+            abi.encodeWithSignature("authorizeCaller(address)", address(group))
+        );
+        // Silently fail if authorization fails (reputation contract will handle it)
+        if (!success) {
+            // Authorization failed, group will still be created but reputation won't work
+        }
+
         allGroups.push(address(group));
         leaderGroups[msg.sender].push(address(group));
 

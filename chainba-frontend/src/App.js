@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ethers } from "ethers";
 import LandingV2 from "./pages/LandingV2";
 import Dashboard from "./pages/Dashboard";
 import CreateGroup from "./pages/CreateGroup";
@@ -7,6 +8,11 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
+import ExploreCircles from "./pages/ExploreCircles";
+import HelpSupport from "./pages/HelpSupport";
+import Notifications from "./pages/Notifications";
+import Analytics from "./pages/Analytics";
+import Transactions from "./pages/Transactions";
 
 export default function App() {
   const [account, setAccount] = useState(null);
@@ -14,6 +20,7 @@ export default function App() {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [backendUser, setBackendUser] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [signer, setSigner] = useState(null);
   const ADMIN_PHONE = "0000000000";
 
   useEffect(() => {
@@ -32,18 +39,29 @@ export default function App() {
       if (window.ethereum) {
         try {
           const accounts = await window.ethereum.request({ method: "eth_accounts" });
-          if (accounts.length > 0) setAccount(accounts[0]);
+          if (accounts.length > 0) {
+            setAccount(accounts[0]);
+            // Create signer for blockchain interactions
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+            setSigner(signer);
+          }
         } catch (err) { console.error(err); }
 
         window.ethereum.on("accountsChanged", (accounts) => {
           if (accounts.length === 0) {
             setAccount(null);
             setBackendUser(null);
+            setSigner(null);
             localStorage.removeItem("chainba_token");
             localStorage.removeItem("chainba_user");
             setPage("landingV2");
           } else {
             setAccount(accounts[0]);
+            // Update signer
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const newSigner = provider.getSigner();
+            setSigner(newSigner);
           }
         });
       }
@@ -59,6 +77,10 @@ export default function App() {
       if (!window.ethereum) return alert("Please install MetaMask to use ChainBa");
       const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
       setAccount(accounts[0]);
+      // Create signer
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      setSigner(signer);
       setPage("dashboard");
     } catch (err) { console.error(err); }
   };
@@ -155,5 +177,25 @@ export default function App() {
 
   if (page === "group") return (
     <GroupView account={activeAccount} backendUser={backendUser} groupAddress={selectedGroup} onNavigate={navigate} />
+  );
+
+  if (page === "explore") return (
+    <ExploreCircles account={activeAccount} backendUser={backendUser} onNavigate={navigate} />
+  );
+
+  if (page === "help") return (
+    <HelpSupport onNavigate={navigate} />
+  );
+
+  if (page === "notifications") return (
+    <Notifications account={activeAccount} onNavigate={navigate} />
+  );
+
+  if (page === "analytics") return (
+    <Analytics account={activeAccount} signer={signer} onNavigate={navigate} />
+  );
+
+  if (page === "transactions") return (
+    <Transactions account={activeAccount} signer={signer} onNavigate={navigate} />
   );
 }

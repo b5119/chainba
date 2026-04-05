@@ -135,10 +135,6 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
     setLoading(false);
   };
 
-  // eslint-disable-next-line no-unused-vars
-        const statusColor = (s) =>
-    s === "Active" ? "#4ade80" : s === "Open" ? "#f59e0b" : "#64748b";
-
   const walletShort = account
     ? `${account.slice(0, 6)}...${account.slice(-4)}`
     : "—";
@@ -160,146 +156,139 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
     setTimeout(() => setCopiedAddress(null), 2000);
   };
 
-  return (
-    <div className="dashPage">
-      <header className="dashNav">
-        <div className="dashNavInner">
-          <button className="dashBrand" type="button" onClick={() => onNavigate("landingV2")}>
-            <span className="dashLogo" aria-hidden="true">
-              <span className="dashDiamond dashDiamondA" />
-              <span className="dashDiamond dashDiamondB" />
-            </span>
-            <span className="dashBrandName">ChainBa</span>
-          </button>
+  // Get user's first name from backendUser or use default
+  const firstName = backendUser?.fullName?.split(' ')[0] || "Member";
 
-          <div className="dashNavRight">
-            <div className="dashWallet" title={account || ""}>
-              {walletShort}
-            </div>
+  // Get time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
+  return (
+    <div className="dashboard-page">
+      {/* Top Navigation */}
+      <header className="dashboard-nav">
+        <div className="dashboard-nav-left">
+          <h1 className="dashboard-brand" onClick={() => onNavigate("landingV2")}>ChainBa</h1>
+          <nav className="dashboard-nav-links">
+            <button className="dashboard-nav-link active" onClick={() => onNavigate("dashboard")}>Dashboard</button>
+            <button className="dashboard-nav-link" onClick={() => onNavigate("explore")}>Explore</button>
+            <button className="dashboard-nav-link" onClick={() => onNavigate("create")}>Create</button>
+            <button className="dashboard-nav-link" onClick={() => onNavigate("profile")}>Profile</button>
             {canSeeAdmin && (
-              <button className="dashNavLink" type="button" onClick={() => onNavigate("admin")}>
-                Admin panel
-              </button>
+              <button className="dashboard-nav-link" onClick={() => onNavigate("admin")}>Governance</button>
             )}
-            <button className="dashBtn dashBtnGhost" type="button" onClick={() => onNavigate("profile")}>
-              Profile
-            </button>
-            <button
-              className="dashBtn dashBtnOutline"
-              type="button"
-              onClick={() => (onLogout ? onLogout() : onNavigate("landingV2"))}
-            >
-              Logout
-            </button>
+          </nav>
+        </div>
+        <div className="dashboard-nav-right">
+          <div className="dashboard-user-info">
+            <span className="dashboard-wallet-address">{walletShort}</span>
+            <span className="dashboard-verified-badge">Verified Member</span>
+          </div>
+          <button className="dashboard-wallet-btn" onClick={() => (onLogout ? onLogout() : onNavigate("landingV2"))}>
+            {account ? "Disconnect" : "Connect Wallet"}
+          </button>
+          <div className="dashboard-avatar">
+            <div className="dashboard-avatar-placeholder"></div>
           </div>
         </div>
       </header>
 
-      <main className="dashMain">
-        <section className="dashStats" aria-label="Account stats">
-          <div className="dashStatCard">
-            <div className="dashStatLabel">ETH Balance</div>
-            <div className="dashStatValue dashStatValueMono dashStatValueEmerald">{balance} ETH</div>
-          </div>
+      <main className="dashboard-main">
+        {/* Hero Greeting */}
+        <section className="dashboard-greeting">
+          <h2 className="dashboard-greeting-title">
+            {getGreeting()}, <span className="dashboard-greeting-name">{firstName}</span>.
+          </h2>
+          <p className="dashboard-greeting-text">
+            Your digital assets are currently participating in {activeCircles} community {activeCircles === 1 ? 'cycle' : 'cycles'}. 
+            {reputation && repScore > 80 ? ' Your reputation is growing steadily.' : ' Keep contributing to build your reputation.'}
+          </p>
+        </section>
 
-          <div className="dashStatCard">
-            <div className="dashStatLabel">Reputation Score</div>
-            <div className={`dashStatValue dashStatValueMono dashRep ${repTone}`}>
-              {reputation?.score ?? "—"}
-              <span className="dashRepOutOf">/ 100</span>
+        {/* Kente Divider */}
+        <div className="kente-shimmer"></div>
+
+        {/* Stats Grid */}
+        <section className="dashboard-stats">
+          {/* ETH Balance */}
+          <div className="dashboard-stat-card stat-card-primary">
+            <div className="stat-card-decoration"></div>
+            <div className="stat-card-header">
+              <span className="material-symbols-outlined stat-card-icon">account_balance_wallet</span>
+              <span className="stat-card-label">ETH Balance</span>
+            </div>
+            <div className="stat-card-content">
+              <span className="stat-card-value">{balance} ETH</span>
+              <span className="stat-card-subtitle">Available Balance</span>
             </div>
           </div>
 
-          <div className="dashStatCard">
-            <div className="dashStatLabel">Active Circles</div>
-            <div className="dashStatValue dashStatValueMono">{activeCircles}</div>
+          {/* Reputation Score */}
+          <div className="dashboard-stat-card">
+            <div className="stat-card-header">
+              <span className="material-symbols-outlined stat-card-icon stat-card-icon-secondary">verified</span>
+              <span className="stat-card-label">Reputation</span>
+            </div>
+            <div className="stat-card-content">
+              <span className="stat-card-value">{reputation?.score ?? "—"}</span>
+              <span className={`stat-card-subtitle stat-subtitle-${repTone}`}>
+                {repScore > 80 ? 'Top 5% Globally' : repScore >= 60 ? 'Growing Steady' : 'Keep Building'}
+              </span>
+            </div>
           </div>
 
-          <div className="dashStatCard">
-            <div className="dashStatLabel">Total Contributed</div>
-            <div className="dashStatValue dashStatValueMono">{totalContributed} ETH</div>
+          {/* Active Circles */}
+          <div className="dashboard-stat-card">
+            <div className="stat-card-header">
+              <span className="material-symbols-outlined stat-card-icon stat-card-icon-tertiary">group</span>
+              <span className="stat-card-label">Active Circles</span>
+            </div>
+            <div className="stat-card-content">
+              <span className="stat-card-value">{String(activeCircles).padStart(2, '0')}</span>
+              <span className="stat-card-subtitle stat-subtitle-tertiary">
+                {activeCircles > 0 ? 'Contributing Actively' : 'Join a Circle'}
+              </span>
+            </div>
+          </div>
+
+          {/* Total Contributed */}
+          <div className="dashboard-stat-card stat-card-dark">
+            <div className="stat-card-header">
+              <span className="material-symbols-outlined stat-card-icon">savings</span>
+              <span className="stat-card-label">Total Contributed</span>
+            </div>
+            <div className="stat-card-content">
+              <span className="stat-card-value">{formatShortDualCurrency(totalContributed)}</span>
+              <span className="stat-card-subtitle stat-subtitle-emerald">Cumulative Volume</span>
+            </div>
           </div>
         </section>
 
-        {/* Payouts Received */}
+        {/* Payouts Received Section */}
         {payoutsReceived.length > 0 && (
-          <section className="dashPayouts" style={{ marginBottom: "32px" }}>
-            <div className="dashSectionHeader">
-              <h2 className="dashSectionTitle">💰 Payouts Received</h2>
-            </div>
-            <div style={{ 
-              background: "white", 
-              borderRadius: "12px", 
-              border: "1px solid #E5E7EB",
-              overflow: "hidden"
-            }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead style={{ background: "#F9FAFB" }}>
+          <section className="dashboard-payouts">
+            <h3 className="dashboard-section-subtitle">Recent Payouts</h3>
+            <div className="dashboard-payouts-table">
+              <table>
+                <thead>
                   <tr>
-                    <th style={{ 
-                      padding: "12px 16px", 
-                      textAlign: "left", 
-                      fontSize: "12px", 
-                      fontWeight: "600", 
-                      color: "#6B7280",
-                      borderBottom: "1px solid #E5E7EB"
-                    }}>
-                      Circle Name
-                    </th>
-                    <th style={{ 
-                      padding: "12px 16px", 
-                      textAlign: "left", 
-                      fontSize: "12px", 
-                      fontWeight: "600", 
-                      color: "#6B7280",
-                      borderBottom: "1px solid #E5E7EB"
-                    }}>
-                      Round
-                    </th>
-                    <th style={{ 
-                      padding: "12px 16px", 
-                      textAlign: "left", 
-                      fontSize: "12px", 
-                      fontWeight: "600", 
-                      color: "#6B7280",
-                      borderBottom: "1px solid #E5E7EB"
-                    }}>
-                      Amount
-                    </th>
-                    <th style={{ 
-                      padding: "12px 16px", 
-                      textAlign: "left", 
-                      fontSize: "12px", 
-                      fontWeight: "600", 
-                      color: "#6B7280",
-                      borderBottom: "1px solid #E5E7EB"
-                    }}>
-                      Date
-                    </th>
+                    <th>Circle Name</th>
+                    <th>Round</th>
+                    <th>Amount</th>
+                    <th>Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {payoutsReceived.map((payout, idx) => (
-                    <tr key={idx} style={{ 
-                      borderBottom: idx < payoutsReceived.length - 1 ? "1px solid #E5E7EB" : "none",
-                      background: "white"
-                    }}>
-                      <td style={{ padding: "12px 16px", fontSize: "14px", color: "#0F172A", fontWeight: "600" }}>
-                        {payout.groupName}
-                      </td>
-                      <td style={{ padding: "12px 16px", fontSize: "14px", color: "#64748B" }}>
-                        Cycle {payout.cycle}
-                      </td>
-                      <td style={{ 
-                        padding: "12px 16px", 
-                        fontSize: "14px", 
-                        color: "#10B981", 
-                        fontWeight: "700",
-                        fontFamily: "monospace"
-                      }}>
-                        {formatShortDualCurrency(payout.amount)}
-                      </td>
-                      <td style={{ padding: "12px 16px", fontSize: "13px", color: "#64748B" }}>
+                    <tr key={idx}>
+                      <td className="payout-name">{payout.groupName}</td>
+                      <td className="payout-cycle">Cycle {payout.cycle}</td>
+                      <td className="payout-amount">{formatShortDualCurrency(payout.amount)}</td>
+                      <td className="payout-date">
                         {payout.date.toLocaleDateString('en-GB', { 
                           day: '2-digit', 
                           month: 'short', 
@@ -314,93 +303,142 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
           </section>
         )}
 
-        <section className="dashCircles">
-          <div className="dashSectionHeader">
-            <h2 className="dashSectionTitle">Your circles</h2>
-            <div className="dashSectionActions">
-              <div className="dashQuickJoin" aria-label="View circle by address">
-                <input
-                  className="dashQuickJoinInput"
-                  value={joinAddress}
-                  onChange={(e) => setJoinAddress(e.target.value)}
-                  placeholder="Paste circle address (0x...)"
-                />
-                <button
-                  className="dashBtn dashBtnOutline"
-                  type="button"
-                  onClick={() => joinAddress && onNavigate("group", joinAddress)}
-                >
-                  View
-                </button>
-              </div>
-              <button className="dashBtn dashBtnPrimary" type="button" onClick={() => onNavigate("create")}>
-                Create circle
-              </button>
+        {/* Circles Section */}
+        <section className="dashboard-circles">
+          <div className="dashboard-circles-header">
+            <div>
+              <h3 className="dashboard-section-title">Your Circles</h3>
+              <p className="dashboard-section-description">Manage your community contributions and cycle payouts.</p>
             </div>
+            <button className="dashboard-create-btn" onClick={() => onNavigate("create")}>
+              <span className="material-symbols-outlined">add_circle</span>
+              Create Circle
+            </button>
+          </div>
+
+          {/* Quick Join Input */}
+          <div className="dashboard-quick-join">
+            <input
+              className="dashboard-quick-join-input"
+              value={joinAddress}
+              onChange={(e) => setJoinAddress(e.target.value)}
+              placeholder="Paste circle address (0x...) to view"
+            />
+            <button
+              className="dashboard-view-btn"
+              onClick={() => joinAddress && onNavigate("group", joinAddress)}
+              disabled={!joinAddress}
+            >
+              View
+            </button>
           </div>
 
           {loading ? (
-            <div className="dashLoading">Loading...</div>
+            <div className="dashboard-loading">Loading your circles...</div>
           ) : groups.length === 0 ? (
-            <div className="dashEmpty">
-              <div className="dashEmptyArt" aria-hidden="true" />
-              <div className="dashEmptyTitle">No circles yet</div>
-              <div className="dashEmptySub">
-                Create a circle to start community savings on-chain.
+            <div className="dashboard-empty">
+              <div className="dashboard-empty-icon">
+                <span className="material-symbols-outlined">potted_plant</span>
               </div>
-              <button className="dashBtn dashBtnPrimary dashBtnLarge" type="button" onClick={() => onNavigate("create")}>
-                Create your first circle
+              <h3 className="dashboard-empty-title">Ready to expand your reach?</h3>
+              <p className="dashboard-empty-text">
+                Join new circles to diversify your community trust and increase your reputation score.
+              </p>
+              <button className="dashboard-empty-btn" onClick={() => onNavigate("create")}>
+                Create Your First Circle
               </button>
             </div>
           ) : (
-            <div className="dashGrid">
+            <div className="dashboard-circles-grid">
               {groups.map((g) => (
-                <div key={g.address} className="dashCircleCard">
-                  <div className="dashCircleTop">
-                    <div className="dashCircleName">{g.name}</div>
-                    <span className={`dashBadge dashBadge-${g.status.toLowerCase()}`}>
-                      {g.status}
-                    </span>
+                <div key={g.address} className="dashboard-circle-card">
+                  <div className="circle-card-image">
+                    <div className="circle-card-image-placeholder"></div>
                   </div>
-
-                  <div className="dashCircleMeta">
-                    <div className="dashMetaItem">
-                      <div className="dashMetaLabel">Members</div>
-                      <div className="dashMetaValue">{g.memberCount}/{g.limit}</div>
+                  <div className="circle-card-content">
+                    <div className="circle-card-header">
+                      <h4 className="circle-card-title">{g.name}</h4>
+                      <span className={`circle-card-badge badge-${g.status.toLowerCase()}`}>
+                        {g.status}
+                      </span>
                     </div>
-                    <div className="dashMetaItem">
-                       <div className="dashMetaLabel">Contribution</div>
-                       <div className="dashMetaValue">{formatShortDualCurrency(g.contribution)} / cycle</div>
-                     </div>
+                    <p className="circle-card-description">
+                      {g.type === "Rotating" ? "Rotating savings circle" : "Fixed contribution circle"} 
+                      {" "}with {g.memberCount} active {g.memberCount === 1 ? 'member' : 'members'}.
+                    </p>
+                    <div className="circle-card-meta">
+                      <div className="circle-meta-item">
+                        <span className="circle-meta-label">Members</span>
+                        <div className="circle-meta-avatars">
+                          {[...Array(Math.min(3, g.memberCount))].map((_, i) => (
+                            <div key={i} className="circle-avatar"></div>
+                          ))}
+                          {g.memberCount > 3 && (
+                            <div className="circle-avatar-count">+{g.memberCount - 3}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="circle-meta-item">
+                        <span className="circle-meta-label">Contribution</span>
+                        <span className="circle-meta-value">{formatShortDualCurrency(g.contribution)} / Cycle</span>
+                      </div>
+                    </div>
+                    <div className="circle-card-actions">
+                      <button
+                        className="circle-action-btn circle-action-primary"
+                        onClick={() => onNavigate("group", g.address)}
+                      >
+                        View Details
+                      </button>
+                      <button
+                        className="circle-action-btn circle-action-secondary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopyAddress(g.address);
+                        }}
+                      >
+                        {copiedAddress === g.address ? "✓ Copied" : "Copy"}
+                      </button>
+                    </div>
+                    {g.isLeader && <div className="circle-leader-badge">Circle Leader</div>}
                   </div>
-
-                  <div className="dashCircleActions">
-                     <button
-                       className="dashBtn dashBtnOutline dashBtnEmerald"
-                       type="button"
-                       onClick={() => onNavigate("group", g.address)}
-                     >
-                       View circle
-                     </button>
-                     <button
-                       className="dashBtn dashBtnGhost"
-                       type="button"
-                       title="Copy circle address"
-                       onClick={(e) => {
-                         e.stopPropagation();
-                         handleCopyAddress(g.address);
-                       }}
-                     >
-                       {copiedAddress === g.address ? "✓ Copied" : "Copy address"}
-                     </button>
-                     {g.isLeader && <span className="dashLeader">Leader</span>}
-                   </div>
                 </div>
               ))}
             </div>
           )}
         </section>
+
+        {/* Empty State / Footer Illustration */}
+        {groups.length > 0 && (
+          <div className="dashboard-footer-cta">
+            <div className="footer-cta-icon">
+              <span className="material-symbols-outlined">potted_plant</span>
+            </div>
+            <h3 className="footer-cta-title">Ready to expand your reach?</h3>
+            <p className="footer-cta-text">
+              Join new circles to diversify your community trust and increase your reputation score.
+            </p>
+            <button className="footer-cta-link" onClick={() => onNavigate("explore")}>
+              Explore Public Circles →
+            </button>
+          </div>
+        )}
       </main>
+
+      {/* Footer */}
+      <footer className="dashboard-footer">
+        <div className="dashboard-footer-content">
+          <div className="footer-branding">
+            <h5 className="footer-brand">ChainBa</h5>
+            <p className="footer-copyright">© 2024 ChainBa Decentralized Finance. The Modern Custodian.</p>
+          </div>
+          <div className="footer-links">
+            <a href="#" className="footer-link">Documentation</a>
+            <a href="#" className="footer-link">Community Discord</a>
+            <a href="#" className="footer-link">Terms</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
