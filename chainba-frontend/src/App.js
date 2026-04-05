@@ -54,14 +54,6 @@ export default function App() {
     init();
   }, []);
 
-  const getMetaMaskAccount = async () => {
-    if (!window.ethereum) return null;
-    try {
-      const accounts = await window.ethereum.request({ method: "eth_accounts" });
-      return accounts[0] || null;
-    } catch { return null; }
-  };
-
   const connectWallet = async () => {
     try {
       if (!window.ethereum) return alert("Please install MetaMask to use ChainBa");
