@@ -10,6 +10,7 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api', require('./routes/complaints'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'ChainBa Backend Running', status: 'ok' });

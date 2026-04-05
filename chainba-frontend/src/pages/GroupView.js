@@ -24,9 +24,13 @@ function StatusBadge({ status }) {
 }
 
 // ─── Member row — own component so future hooks are safe ──────────────────
-function MemberRow({ address, account, hasPaid, index }) {
+function MemberRow({ address, account, hasPaid, name, reputation, index }) {
   const isYou = account && address.toLowerCase() === account.toLowerCase();
-  const initials = address ? address.slice(2,4).toUpperCase() : "??";
+  const initials = name && name.length >= 2
+    ? name.slice(0, 2).toUpperCase()
+    : address ? address.slice(2, 4).toUpperCase() : "??";
+  
+  const displayName = name || `${address.slice(0,6)}...${address.slice(-4)}`;
   const truncated = address
     ? `${address.slice(0,6)}...${address.slice(-4)}`
     : "Unknown";
@@ -34,10 +38,19 @@ function MemberRow({ address, account, hasPaid, index }) {
   return (
     <div className="gv-member-row">
       <div className="gv-avatar">{initials}</div>
-      <span className="gv-member-address">
-        {truncated}
-        {isYou && <span className="gv-member-you">you</span>}
-      </span>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span className="gv-member-address" style={{ fontWeight: name ? "600" : "400" }}>
+            {displayName}
+            {isYou && <span className="gv-member-you">you</span>}
+          </span>
+        </div>
+        {name && (
+          <div style={{ fontSize: "11px", color: "#64748B", marginTop: "2px", fontFamily: "monospace" }}>
+            {truncated} · Score: {reputation || 0}
+          </div>
+        )}
+      </div>
       <span className={`gv-paid-badge ${hasPaid ? "gv-paid-yes" : "gv-paid-no"}`}>
         {hasPaid ? "✓ Paid" : "⏳ Pending"}
       </span>
@@ -49,6 +62,7 @@ function MemberRow({ address, account, hasPaid, index }) {
 export default function GroupView({ account, backendUser, groupAddress, onNavigate }) {
   const [groupData,    setGroupData]    = useState(null);
   const [members,      setMembers]      = useState([]);
+  const [memberDetails, setMemberDetails] = useState([]); // {address, name, hasPaid, reputation}
   const [memberCount,  setMemberCount]  = useState(0);
   const [paidStatus,   setPaidStatus]   = useState([]);
   const [currentCycle, setCurrentCycle] = useState(0);
@@ -63,9 +77,19 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
   const [flagging,     setFlagging]     = useState(false);
   const [txStatus,     setTxStatus]     = useState(""); // "pending"|"confirmed"|"error"
   const [txMessage,    setTxMessage]    = useState("");
+  const [txHash,       setTxHash]       = useState("");
   
   // JOIN states
   const [joining,      setJoining]      = useState(false);
+  
+  // Payout history states
+  const [payoutHistory, setPayoutHistory] = useState([]);
+  const [upcomingDeadline, setUpcomingDeadline] = useState(null);
+  
+  // Flag defaulter modal states
+  const [showFlagModal, setShowFlagModal] = useState(false);
+  const [selectedDefaulter, setSelectedDefaulter] = useState("");
+  const [complaintText, setComplaintText] = useState("");
 
   // ── Load group data ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -80,6 +104,9 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(groupAddress, GROUP_ABI, provider);
+
+      // Use the account prop directly (passed from App.js)
+      console.log("Loading group for account:", account);
 
       const [
         name, type, status, contribAmount, stakeAmt, penaltyAmt,
@@ -121,17 +148,56 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
 
       // Member list using getMembers()
       let memberList = [];
+      let memberDetails = []; // Store {address, name, hasPaid, reputation}
       const paid = [];
       let userIsMember = false;
 
       try {
         memberList = await contract.getMembers();
+        console.log("Members:", memberList);
         
-        // Check payment status for each member
+        // Get reputation contract
+        const reputationAddr = await contract.reputationContract();
+        const ReputationContract = new ethers.Contract(
+          reputationAddr,
+          [
+            "function getScore(address) view returns (uint256)",
+            "function getMember(address) view returns (uint256,uint256,uint256,uint256,uint256,uint256)"
+          ],
+          provider
+        );
+        
+        // Check payment status and fetch details for each member
         for (let i = 0; i < memberList.length; i++) {
           const addr = memberList[i];
           const hasPaid = await contract.hasPaid(addr, Number(cycle));
+          console.log(`Member ${addr} paid in cycle ${cycle}:`, hasPaid);
           paid.push(hasPaid);
+          
+          // Get member details from contract
+          let memberName = "";
+          let reputationScore = 0;
+          try {
+            const memberData = await contract.members(addr);
+            memberName = memberData[0]; // fullName is first in tuple
+            
+            // Get reputation score
+            try {
+              reputationScore = Number(await ReputationContract.getScore(addr));
+            } catch (e) {
+              console.log("Error getting reputation for", addr, e);
+            }
+          } catch (e) {
+            console.log("Error getting member details for", addr, e);
+          }
+          
+          memberDetails.push({
+            address: addr,
+            name: memberName || "Unknown",
+            hasPaid: hasPaid,
+            reputation: reputationScore,
+          });
+          
           if (account && addr.toLowerCase() === account.toLowerCase()) {
             userIsMember = true;
           }
@@ -141,6 +207,7 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
       }
 
       setMembers(memberList);
+      setMemberDetails(memberDetails);
       setPaidStatus(paid);
       setIsMember(userIsMember);
 
@@ -153,6 +220,44 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
           setBeneficiary(null);
         }
       }
+      
+      // Load payout history for all completed cycles
+      const history = [];
+      const totalCycles = Number(cycle);
+      console.log("Loading cycle history, total cycles:", totalCycles);
+      
+      for (let i = 1; i <= totalCycles; i++) {
+        try {
+          const cycleInfo = await contract.getCycleInfo(i);
+          console.log(`Cycle ${i} info:`, {
+            beneficiary: cycleInfo.beneficiary,
+            deadline: cycleInfo.deadline.toString(),
+            deadlineDate: new Date(Number(cycleInfo.deadline) * 1000).toISOString(),
+            completed: cycleInfo.completed
+          });
+          
+          if (cycleInfo.completed) {
+            // Note: totalCollected is reset to 0 after payout, so calculate from contribution * members
+            const payoutAmount = contribAmount.mul(memberList.length);
+            history.push({
+              cycle: i,
+              beneficiary: cycleInfo.beneficiary,
+              amount: payoutAmount,
+              deadline: new Date(Number(cycleInfo.deadline) * 1000),
+              completed: true,
+            });
+          } else if (i === totalCycles) {
+            // Current cycle deadline
+            const deadlineDate = new Date(Number(cycleInfo.deadline) * 1000);
+            console.log("Setting upcoming deadline:", deadlineDate);
+            setUpcomingDeadline(deadlineDate);
+          }
+        } catch (e) {
+          console.log(`Error loading cycle ${i}:`, e);
+        }
+      }
+      console.log("Payout history:", history);
+      setPayoutHistory(history);
     } catch (err) {
       console.error(err);
       setError(`Error: ${err.message || err.reason || JSON.stringify(err)}`);
@@ -166,14 +271,21 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
     setContributing(true);
     setTxStatus("pending");
     setTxMessage("Waiting for wallet approval...");
+    setTxHash("");
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer   = await provider.getSigner();
       const contract = new ethers.Contract(groupAddress, GROUP_ABI, signer);
 
+      console.log("Sending contribution:", {
+        contributionAmount: groupData.contributionAmount.toString(),
+        formatted: ethers.utils.formatEther(groupData.contributionAmount)
+      });
+
       const tx = await contract.payContribution({
         value: groupData.contributionAmount,
       });
+      setTxHash(tx.hash);
       setTxMessage("Transaction submitted — confirming...");
       await tx.wait(1);
 
@@ -181,11 +293,14 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
       setTxMessage("✓ Contribution confirmed!");
       await loadGroup();
     } catch (err) {
+      console.error("Contribution error:", err);
       setTxStatus("error");
       if (err.code === 4001 || err.code === "ACTION_REJECTED") {
         setTxMessage("Transaction rejected.");
       } else if (err.reason) {
         setTxMessage(`Contract error: ${err.reason}`);
+      } else if (err.message) {
+        setTxMessage(`Error: ${err.message}`);
       } else {
         setTxMessage("Transaction failed. Please try again.");
       }
@@ -209,10 +324,17 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
     setJoining(true);
     setTxStatus("pending");
     setTxMessage("Waiting for wallet approval to pay stake...");
+    setTxHash("");
     try {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer   = await provider.getSigner();
       const contract = new ethers.Contract(groupAddress, GROUP_ABI, signer);
+
+      console.log("Joining group:", {
+        fullName,
+        stakeAmount: groupData.stakeAmount.toString(),
+        formatted: ethers.utils.formatEther(groupData.stakeAmount)
+      });
 
       const tx = await contract.joinGroup(
         fullName,
@@ -222,18 +344,26 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
           value: groupData.stakeAmount,
         }
       );
+      setTxHash(tx.hash);
       setTxMessage("Transaction submitted — confirming...");
       await tx.wait(1);
 
       setTxStatus("confirmed");
       setTxMessage(`✓ Joined! Stake of ${formatDualCurrency(ethers.utils.formatEther(groupData.stakeAmount))} paid.`);
-      await loadGroup();
+      
+      // Wait a moment for blockchain state to update, then reload
+      setTimeout(async () => {
+        await loadGroup();
+      }, 1500);
     } catch (err) {
+      console.error("Join error:", err);
       setTxStatus("error");
       if (err.code === 4001 || err.code === "ACTION_REJECTED") {
         setTxMessage("Transaction rejected.");
       } else if (err.reason) {
         setTxMessage(`Contract error: ${err.reason}`);
+      } else if (err.message) {
+        setTxMessage(`Error: ${err.message}`);
       } else {
         setTxMessage("Transaction failed. Please try again.");
       }
@@ -245,23 +375,64 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
 
   // ── Flag default ─────────────────────────────────────────────────────────
   async function handleFlagDefault() {
-    const target = window.prompt("Enter member address to flag:");
-    if (!target) return;
+    if (!selectedDefaulter) {
+      setTxMessage("Please select a member to flag");
+      return;
+    }
+    if (!complaintText.trim()) {
+      setTxMessage("Please provide complaint details");
+      return;
+    }
+    
     setFlagging(true);
     setTxStatus("pending");
-    setTxMessage("Flagging default on-chain...");
+    setTxMessage("Flagging default on-chain and submitting complaint...");
+    
     try {
+      // 1. Flag on blockchain
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer   = await provider.getSigner();
       const contract = new ethers.Contract(groupAddress, GROUP_ABI, signer);
-      const tx = await contract.flagDefault(target);
+      const tx = await contract.flagDefault(selectedDefaulter);
       await tx.wait(1);
+      
+      // 2. Submit complaint to backend
+      const token = localStorage.getItem("chainba_token");
+      const defaulterDetails = memberDetails.find(
+        m => m.address.toLowerCase() === selectedDefaulter.toLowerCase()
+      );
+      
+      const response = await fetch("http://localhost:5000/api/complaints", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          groupAddress,
+          groupName: groupData?.name || "Unknown",
+          reporterAddress: account,
+          reporterName: backendUser?.fullName || "Unknown",
+          defaulterAddress: selectedDefaulter,
+          defaulterName: defaulterDetails?.name || "Unknown",
+          complaintText: complaintText.trim(),
+          cycle: currentCycle
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to submit complaint to backend");
+      }
+      
       setTxStatus("confirmed");
-      setTxMessage("✓ Default flagged on-chain.");
+      setTxMessage("✓ Default flagged on-chain and complaint submitted.");
+      setShowFlagModal(false);
+      setSelectedDefaulter("");
+      setComplaintText("");
       await loadGroup();
     } catch (err) {
       setTxStatus("error");
-      setTxMessage(err.reason || "Failed to flag default.");
+      setTxMessage(err.reason || err.message || "Failed to flag default.");
     } finally {
       setFlagging(false);
     }
@@ -402,24 +573,154 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
                {memberCount} / {groupData?.memberLimit}
              </span>
            </h2>
-           <div className="gv-members-list">
-             {members.length === 0 ? (
-               <p style={{ fontSize:13, color:"#64748B" }}>No members yet.</p>
+            <div className="gv-members-list">
+              {members.length === 0 ? (
+                <p style={{ fontSize:13, color:"#64748B" }}>No members yet.</p>
+              ) : (
+                memberDetails.length > 0 ? (
+                  memberDetails.map((member, i) => (
+                    <MemberRow
+                      key={member.address}
+                      address={member.address}
+                      account={account}
+                      hasPaid={member.hasPaid}
+                      name={member.name}
+                      reputation={member.reputation}
+                      index={i}
+                    />
+                  ))
+                ) : (
+                  members.map((addr, i) => (
+                    <MemberRow
+                      key={addr}
+                      address={addr}
+                      account={account}
+                      hasPaid={paidStatus[i]}
+                      index={i}
+                    />
+                  ))
+                )
+              )}
+            </div>
+          </div>
+
+         {/* Payout History & Payment Schedule */}
+         {(isMember || isLeader) && (
+           <div className="gv-section">
+             <h2 className="gv-section-heading">Payout History & Schedule</h2>
+             
+             {/* Upcoming Payment Deadline */}
+             {upcomingDeadline && groupData?.status === 1 && (
+               <div style={{
+                 padding: "16px",
+                 background: "#FEF3C7",
+                 border: "1px solid #FDE68A",
+                 borderRadius: "8px",
+                 marginBottom: "16px"
+               }}>
+                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                   <span style={{ fontSize: "18px" }}>📅</span>
+                   <strong style={{ fontSize: "14px", color: "#92400E" }}>Next Payment Deadline</strong>
+                 </div>
+                 <p style={{ margin: "4px 0 0 26px", fontSize: "13px", color: "#78350F" }}>
+                   {upcomingDeadline.toLocaleDateString('en-GB', { 
+                     weekday: 'long', 
+                     year: 'numeric', 
+                     month: 'long', 
+                     day: 'numeric' 
+                   })}
+                   {" at "}
+                   {upcomingDeadline.toLocaleTimeString('en-GB', { 
+                     hour: '2-digit', 
+                     minute: '2-digit' 
+                   })}
+                 </p>
+               </div>
+             )}
+             
+             {/* Payout History Table */}
+             {payoutHistory.length > 0 ? (
+               <div style={{
+                 border: "1px solid #E5E7EB",
+                 borderRadius: "8px",
+                 overflow: "hidden"
+               }}>
+                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                   <thead style={{ background: "#F9FAFB" }}>
+                     <tr>
+                       <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", fontWeight: "600", color: "#6B7280", borderBottom: "1px solid #E5E7EB" }}>
+                         Round
+                       </th>
+                       <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", fontWeight: "600", color: "#6B7280", borderBottom: "1px solid #E5E7EB" }}>
+                         Beneficiary
+                       </th>
+                       <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", fontWeight: "600", color: "#6B7280", borderBottom: "1px solid #E5E7EB" }}>
+                         Amount Paid
+                       </th>
+                       <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", fontWeight: "600", color: "#6B7280", borderBottom: "1px solid #E5E7EB" }}>
+                         Completed On
+                       </th>
+                       <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "12px", fontWeight: "600", color: "#6B7280", borderBottom: "1px solid #E5E7EB" }}>
+                         Status
+                       </th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {payoutHistory.map((payout, idx) => {
+                       const isUserBeneficiary = account && payout.beneficiary.toLowerCase() === account.toLowerCase();
+                       return (
+                         <tr key={idx} style={{
+                           background: isUserBeneficiary ? "#F0FDF4" : "white",
+                           borderBottom: idx < payoutHistory.length - 1 ? "1px solid #E5E7EB" : "none"
+                         }}>
+                           <td style={{ padding: "12px 16px", fontSize: "14px", color: "#0F172A" }}>
+                             Cycle {payout.cycle}
+                           </td>
+                           <td style={{ padding: "12px 16px", fontSize: "13px", color: "#64748B", fontFamily: "monospace" }}>
+                             {payout.beneficiary.slice(0, 6)}...{payout.beneficiary.slice(-4)}
+                             {isUserBeneficiary && (
+                               <span style={{ marginLeft: "8px", fontSize: "12px", color: "#10B981", fontWeight: "600" }}>
+                                 (You!)
+                               </span>
+                             )}
+                           </td>
+                           <td style={{ padding: "12px 16px", fontSize: "14px", color: "#0F172A", fontWeight: "600" }}>
+                             {formatDualCurrency(ethers.utils.formatEther(payout.amount))}
+                           </td>
+                           <td style={{ padding: "12px 16px", fontSize: "13px", color: "#64748B" }}>
+                             {payout.deadline.toLocaleDateString('en-GB', { 
+                               day: '2-digit', 
+                               month: 'short', 
+                               year: 'numeric' 
+                             })}
+                           </td>
+                           <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                             <span style={{
+                               padding: "4px 12px",
+                               background: "#DCFCE7",
+                               color: "#166534",
+                               fontSize: "12px",
+                               fontWeight: "600",
+                               borderRadius: "12px"
+                             }}>
+                               ✓ Paid
+                             </span>
+                           </td>
+                         </tr>
+                       );
+                     })}
+                   </tbody>
+                 </table>
+               </div>
              ) : (
-               members.map((addr, i) => (
-                 <MemberRow
-                   key={addr}
-                   address={addr}
-                   account={account}
-                   hasPaid={paidStatus[i]}
-                   index={i}
-                 />
-               ))
+               <p style={{ fontSize: "13px", color: "#64748B", textAlign: "center", padding: "20px" }}>
+                 No completed payouts yet. History will appear here once rounds are completed.
+               </p>
              )}
            </div>
-         </div>
+         )}
 
-         {/* Contract Transparency */}
+          {/* Contract Transparency */}
          <div className="gv-section">
            <details className="gv-contract-details">
              <summary className="gv-contract-summary">
@@ -462,11 +763,29 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
          {txStatus && (
            <div className={`gv-tx-banner gv-tx-${txStatus}`}>
              {txMessage}
+             {txHash && (
+               <div style={{ marginTop: "8px", fontSize: "12px", opacity: 0.9 }}>
+                 <span>Transaction: </span>
+                 <a
+                   href={`https://etherscan.io/tx/${txHash}`}
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   style={{ 
+                     color: "inherit", 
+                     textDecoration: "underline",
+                     fontFamily: "monospace"
+                   }}
+                 >
+                   {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                 </a>
+                 <span style={{ marginLeft: "8px" }}>↗</span>
+               </div>
+             )}
            </div>
          )}
 
           {/* JOIN FORM — for non-members */}
-          {!isMember && !backendUser && (
+          {!isMember && !backendUser && txStatus !== "confirmed" && (
             <div className="gv-join-section">
               <h3 style={{ marginBottom: "12px", color: "#0F172A" }}>Join this Circle</h3>
               <p style={{ fontSize: "13px", color: "#64748B" }}>
@@ -483,7 +802,7 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
           )}
 
           {/* JOIN CONFIRMATION — for authenticated non-members */}
-          {!isMember && backendUser && (
+          {!isMember && backendUser && txStatus !== "confirmed" && (
             <div className="gv-join-section">
               <h3 style={{ marginBottom: "16px", color: "#0F172A" }}>
                 {isLeader ? "Pay Stake to Join Your Circle" : "Join this Circle"}
@@ -555,15 +874,159 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
           {isLeader && groupData?.status === 1 && (
             <button
               className="gv-btn-flag"
-              onClick={handleFlagDefault}
+              onClick={() => setShowFlagModal(true)}
               disabled={flagging}
             >
-              {flagging ? "Flagging..." : "Flag default"}
+              {flagging ? "Flagging..." : "Flag Defaulter"}
             </button>
           )}
         </div>
 
       </main>
+      
+      {/* Flag Defaulter Modal */}
+      {showFlagModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: "white",
+            borderRadius: "12px",
+            padding: "24px",
+            maxWidth: "500px",
+            width: "90%",
+            maxHeight: "80vh",
+            overflow: "auto"
+          }}>
+            <h3 style={{ marginBottom: "16px", color: "#0F172A" }}>Flag Defaulter</h3>
+            
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ 
+                display: "block", 
+                fontSize: "13px", 
+                fontWeight: "600",
+                color: "#0F172A",
+                marginBottom: "8px" 
+              }}>
+                Select Member
+              </label>
+              <select
+                value={selectedDefaulter}
+                onChange={(e) => setSelectedDefaulter(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "1px solid #E5E7EB",
+                  borderRadius: "6px",
+                  fontSize: "14px"
+                }}
+              >
+                <option value="">-- Select a member --</option>
+                {memberDetails
+                  .filter(m => m.address.toLowerCase() !== account?.toLowerCase())
+                  .map(m => (
+                    <option key={m.address} value={m.address}>
+                      {m.name} ({m.address.slice(0,6)}...{m.address.slice(-4)})
+                    </option>
+                  ))
+                }
+              </select>
+            </div>
+            
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ 
+                display: "block", 
+                fontSize: "13px", 
+                fontWeight: "600",
+                color: "#0F172A",
+                marginBottom: "8px" 
+              }}>
+                Complaint Details
+              </label>
+              <textarea
+                value={complaintText}
+                onChange={(e) => setComplaintText(e.target.value)}
+                placeholder="Describe the reason for flagging this member (e.g., failed to pay for 2 cycles, unresponsive to reminders, etc.)"
+                rows={5}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "1px solid #E5E7EB",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontFamily: "inherit",
+                  resize: "vertical"
+                }}
+              />
+            </div>
+            
+            {txMessage && (
+              <div style={{
+                padding: "12px",
+                background: txStatus === "error" ? "#FEE2E2" : "#F0FDF4",
+                border: `1px solid ${txStatus === "error" ? "#FECACA" : "#DCFCE7"}`,
+                borderRadius: "6px",
+                marginBottom: "16px",
+                fontSize: "13px",
+                color: txStatus === "error" ? "#991B1B" : "#166534"
+              }}>
+                {txMessage}
+              </div>
+            )}
+            
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={handleFlagDefault}
+                disabled={flagging || !selectedDefaulter || !complaintText.trim()}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  background: flagging || !selectedDefaulter || !complaintText.trim() ? "#E5E7EB" : "#EF4444",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  cursor: flagging || !selectedDefaulter || !complaintText.trim() ? "not-allowed" : "pointer"
+                }}
+              >
+                {flagging ? "Processing..." : "Submit Complaint"}
+              </button>
+              <button
+                onClick={() => {
+                  setShowFlagModal(false);
+                  setSelectedDefaulter("");
+                  setComplaintText("");
+                  setTxMessage("");
+                }}
+                disabled={flagging}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  background: "transparent",
+                  color: "#0F172A",
+                  border: "1px solid #E5E7EB",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  cursor: flagging ? "not-allowed" : "pointer"
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

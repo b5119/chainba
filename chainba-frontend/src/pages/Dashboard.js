@@ -13,6 +13,7 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
   const [loading, setLoading] = useState(true);
   const [joinAddress, setJoinAddress] = useState("");
   const [copiedAddress, setCopiedAddress] = useState(null);
+  const [payoutsReceived, setPayoutsReceived] = useState([]); // {groupName, cycle, amount, date}
 
   useEffect(() => { 
     if (account) loadData(); 
@@ -25,12 +26,11 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       
-      // Get active MetaMask address
-      const accounts = await window.ethereum.request({method:"eth_accounts"}); 
-      const activeAddr = accounts[0] || account;
+      // Use the account prop directly (passed from App.js)
+      console.log("Loading dashboard for account:", account);
       
       // Get balance
-      const bal = await provider.getBalance(activeAddr);
+      const bal = await provider.getBalance(account);
       setBalance(parseFloat(ethers.utils.formatEther(bal)).toFixed(4));
 
       // Get groups
@@ -46,6 +46,8 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
       }
 
       const groupData = [];
+      const userPayouts = []; // Track payouts received by user
+      
       for (let addr of allGroups) {
         try {
           const g = new ethers.Contract(addr, GROUP_ABI, signer);
@@ -57,16 +59,17 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
           const leader = await g.leader();
           const status = await g.status();
           const memberCount = await g.getMemberCount();
+          const currentCycle = await g.currentCycle();
           
           // Check if active account is leader
-          const isLeader = leader.toLowerCase() === activeAddr.toLowerCase();
+          const isLeader = leader.toLowerCase() === account.toLowerCase();
           
           // Check if active account is in member list using getMembers()
           let isMember = false;
           try {
             const memberAddresses = await g.getMembers();
             isMember = memberAddresses.some(
-              m => m.toLowerCase() === activeAddr.toLowerCase()
+              m => m.toLowerCase() === account.toLowerCase()
             );
           } catch (e) {
             console.log("Could not get members for", addr, e.message);
@@ -82,15 +85,36 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
               status: ["Open","Active","Completed"][status],
               isLeader
             });
+            
+            // Check for completed cycles where user was beneficiary
+            const totalCycles = Number(currentCycle);
+            for (let i = 1; i <= totalCycles; i++) {
+              try {
+                const cycleInfo = await g.getCycleInfo(i);
+                if (cycleInfo.completed && 
+                    cycleInfo.beneficiary.toLowerCase() === account.toLowerCase()) {
+                  const payoutAmount = contribution.mul(memberCount);
+                  userPayouts.push({
+                    groupName: name,
+                    cycle: i,
+                    amount: ethers.utils.formatEther(payoutAmount),
+                    date: new Date(Number(cycleInfo.deadline) * 1000),
+                  });
+                }
+              } catch (e) {
+                console.log(`Could not get cycle ${i} info:`, e.message);
+              }
+            }
           }
         } catch(e) { console.log("Group error:", e); }
       }
       setGroups(groupData);
+      setPayoutsReceived(userPayouts);
 
       // Get reputation
       try {
         const rep = new ethers.Contract(REPUTATION_ADDRESS, REPUTATION_ABI, signer);
-        const r = await rep.getMember(activeAddr);
+        const r = await rep.getMember(account);
         setReputation({
           score: r[0].toString(),
           totalCycles: r[1].toString(),
@@ -196,6 +220,99 @@ export default function Dashboard({ account, backendUser, onNavigate, onLogout }
             <div className="dashStatValue dashStatValueMono">{totalContributed} ETH</div>
           </div>
         </section>
+
+        {/* Payouts Received */}
+        {payoutsReceived.length > 0 && (
+          <section className="dashPayouts" style={{ marginBottom: "32px" }}>
+            <div className="dashSectionHeader">
+              <h2 className="dashSectionTitle">💰 Payouts Received</h2>
+            </div>
+            <div style={{ 
+              background: "white", 
+              borderRadius: "12px", 
+              border: "1px solid #E5E7EB",
+              overflow: "hidden"
+            }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead style={{ background: "#F9FAFB" }}>
+                  <tr>
+                    <th style={{ 
+                      padding: "12px 16px", 
+                      textAlign: "left", 
+                      fontSize: "12px", 
+                      fontWeight: "600", 
+                      color: "#6B7280",
+                      borderBottom: "1px solid #E5E7EB"
+                    }}>
+                      Circle Name
+                    </th>
+                    <th style={{ 
+                      padding: "12px 16px", 
+                      textAlign: "left", 
+                      fontSize: "12px", 
+                      fontWeight: "600", 
+                      color: "#6B7280",
+                      borderBottom: "1px solid #E5E7EB"
+                    }}>
+                      Round
+                    </th>
+                    <th style={{ 
+                      padding: "12px 16px", 
+                      textAlign: "left", 
+                      fontSize: "12px", 
+                      fontWeight: "600", 
+                      color: "#6B7280",
+                      borderBottom: "1px solid #E5E7EB"
+                    }}>
+                      Amount
+                    </th>
+                    <th style={{ 
+                      padding: "12px 16px", 
+                      textAlign: "left", 
+                      fontSize: "12px", 
+                      fontWeight: "600", 
+                      color: "#6B7280",
+                      borderBottom: "1px solid #E5E7EB"
+                    }}>
+                      Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payoutsReceived.map((payout, idx) => (
+                    <tr key={idx} style={{ 
+                      borderBottom: idx < payoutsReceived.length - 1 ? "1px solid #E5E7EB" : "none",
+                      background: "white"
+                    }}>
+                      <td style={{ padding: "12px 16px", fontSize: "14px", color: "#0F172A", fontWeight: "600" }}>
+                        {payout.groupName}
+                      </td>
+                      <td style={{ padding: "12px 16px", fontSize: "14px", color: "#64748B" }}>
+                        Cycle {payout.cycle}
+                      </td>
+                      <td style={{ 
+                        padding: "12px 16px", 
+                        fontSize: "14px", 
+                        color: "#10B981", 
+                        fontWeight: "700",
+                        fontFamily: "monospace"
+                      }}>
+                        {formatShortDualCurrency(payout.amount)}
+                      </td>
+                      <td style={{ padding: "12px 16px", fontSize: "13px", color: "#64748B" }}>
+                        {payout.date.toLocaleDateString('en-GB', { 
+                          day: '2-digit', 
+                          month: 'short', 
+                          year: 'numeric' 
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         <section className="dashCircles">
           <div className="dashSectionHeader">
