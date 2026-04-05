@@ -22,6 +22,8 @@ export default function LandingV2({ onNavigate, onConnect, onRegister, onLogin }
     }
   };
 
+  // Reserved for future login button implementation
+  // eslint-disable-next-line no-unused-vars
   const handleLogin = () => {
     if (onLogin) {
       onLogin();
@@ -90,7 +92,7 @@ export default function LandingV2({ onNavigate, onConnect, onRegister, onLogin }
               <button className="landing-btn-primary" onClick={handleRegister}>
                 Launch DApp
               </button>
-              <button className="landing-btn-secondary">
+              <button className="landing-btn-secondary" onClick={() => window.open('https://chainba.io/whitepaper', '_blank')}>
                 Read Whitepaper
               </button>
             </div>
@@ -403,7 +405,10 @@ export default function LandingV2({ onNavigate, onConnect, onRegister, onLogin }
           </p>
           <div className="landing-cta-buttons">
             <button className="landing-cta-btn-primary" onClick={handleRegister}>Create a Circle</button>
-            <button className="landing-cta-btn-secondary">Explore Pools</button>
+            <button className="landing-cta-btn-secondary" onClick={() => {
+              if (onNavigate) onNavigate('explore');
+              else handleRegister();
+            }}>Explore Pools</button>
           </div>
         </div>
       </section>
@@ -429,25 +434,40 @@ export default function LandingV2({ onNavigate, onConnect, onRegister, onLogin }
       {/* Sticky Bottom Navigation Bar */}
       <div className={`landing-sticky-nav ${stickyNavVisible ? 'landing-sticky-nav-visible' : ''}`}>
         <div className="landing-sticky-nav-content">
-          <a href="#dashboard" className="landing-sticky-link landing-sticky-link-active">
+          <button className="landing-sticky-link landing-sticky-link-active" onClick={() => {
+            if (onNavigate) onNavigate('dashboard');
+            else handleRegister();
+          }}>
             <span className="material-symbols-outlined">dashboard</span>
             <span className="landing-sticky-label">Dash</span>
-          </a>
-          <a href="#pools" className="landing-sticky-link">
+          </button>
+          <button className="landing-sticky-link" onClick={() => {
+            if (onNavigate) onNavigate('explore');
+            else handleRegister();
+          }}>
             <span className="material-symbols-outlined">group_work</span>
             <span className="landing-sticky-label">Pools</span>
-          </a>
-          <div className="landing-sticky-fab">
+          </button>
+          <button className="landing-sticky-fab" onClick={() => {
+            if (onNavigate) onNavigate('create');
+            else handleRegister();
+          }}>
             <span className="material-symbols-outlined">add</span>
-          </div>
-          <a href="#vault" className="landing-sticky-link">
+          </button>
+          <button className="landing-sticky-link" onClick={() => {
+            if (onNavigate) onNavigate('analytics');
+            else handleRegister();
+          }}>
             <span className="material-symbols-outlined">account_balance</span>
             <span className="landing-sticky-label">Vault</span>
-          </a>
-          <a href="#settings" className="landing-sticky-link">
+          </button>
+          <button className="landing-sticky-link" onClick={() => {
+            if (onNavigate) onNavigate('profile');
+            else handleRegister();
+          }}>
             <span className="material-symbols-outlined">settings</span>
             <span className="landing-sticky-label">Set</span>
-          </a>
+          </button>
         </div>
       </div>
     </div>

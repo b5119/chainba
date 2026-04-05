@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Complaint = require("../models/Complaint");
-const { authMiddleware } = require("../middleware/auth");
+const authMiddleware = require("../middleware/auth");
 
 // Submit a new complaint (leader only)
 router.post("/complaints", authMiddleware, async (req, res) => {
