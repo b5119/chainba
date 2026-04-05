@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login | ChainBa Decentralized Finance</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "outline-variant": "#bbcabf",
+                "inverse-surface": "#2d3133",
+                "on-primary-fixed-variant": "#005236",
+                "surface-tint": "#006c49",
+                "primary": "#006c49",
+                "on-secondary-fixed": "#07006c",
+                "surface-container-highest": "#e0e3e5",
+                "on-secondary": "#ffffff",
+                "tertiary": "#855300",
+                "primary-fixed": "#6ffbbe",
+                "surface-container-low": "#f2f4f6",
+                "on-primary-fixed": "#002113",
+                "on-tertiary-fixed-variant": "#653e00",
+                "primary-container": "#10b981",
+                "on-tertiary-container": "#523200",
+                "inverse-on-surface": "#eff1f3",
+                "surface-container-high": "#e6e8ea",
+                "tertiary-fixed-dim": "#ffb95f",
+                "tertiary-container": "#e29100",
+                "secondary-fixed-dim": "#c0c1ff",
+                "surface": "#f7f9fb",
+                "on-secondary-container": "#fffbff",
+                "on-primary-container": "#00422b",
+                "secondary-container": "#6063ee",
+                "on-error-container": "#93000a",
+                "tertiary-fixed": "#ffddb8",
+                "on-surface-variant": "#3c4a42",
+                "on-background": "#191c1e",
+                "error": "#ba1a1a",
+                "secondary-fixed": "#e1e0ff",
+                "on-secondary-fixed-variant": "#2f2ebe",
+                "inverse-primary": "#4edea3",
+                "on-tertiary-fixed": "#2a1700",
+                "outline": "#6c7a71",
+                "surface-container": "#eceef0",
+                "surface-variant": "#e0e3e5",
+                "primary-fixed-dim": "#4edea3",
+                "background": "#f7f9fb",
+                "on-primary": "#ffffff",
+                "on-tertiary": "#ffffff",
+                "error-container": "#ffdad6",
+                "surface-bright": "#f7f9fb",
+                "secondary": "#4648d4",
+                "on-error": "#ffffff",
+                "surface-dim": "#d8dadc",
+                "surface-container-lowest": "#ffffff",
+                "on-surface": "#191c1e"
+              },
+              fontFamily: {
+                "headline": ["Newsreader", "serif"],
+                "body": ["Manrope", "sans-serif"],
+                "label": ["Inter", "sans-serif"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        .kente-divider {
+            height: 5px;
+            background: linear-gradient(90deg, #006c49 0%, #855300 25%, #4648d4 50%, #006c49 75%, #855300 100%);
+            background-size: 200% 100%;
+            /* Note: Animation requested but restricted by system rules, using static shimmer representation */
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-background min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+<!-- Subtle Background Texture -->
+<div class="absolute inset-0 z-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(#006c49 0.5px, transparent 0.5px); background-size: 24px 24px;"></div>
+<!-- Main Auth Canvas -->
+<main class="relative z-10 w-full max-w-[480px]">
+<!-- The Central Login Card -->
+<div class="bg-surface-container-lowest rounded-[20px] shadow-[0_10px_40px_-15px_rgba(25,28,30,0.08)] overflow-hidden">
+<!-- Kente Signature Strip -->
+<div class="kente-divider w-full"></div>
+<div class="px-10 pt-12 pb-10">
+<!-- Brand Header -->
+<div class="text-center mb-10">
+<h1 class="font-headline text-3xl font-bold tracking-tight text-primary mb-2">ChainBa</h1>
+<p class="font-headline text-2xl text-on-surface">Welcome back.</p>
+</div>
+<!-- Login Form -->
+<form class="space-y-6">
+<!-- Phone Input Group -->
+<div class="space-y-1.5">
+<label class="block font-label text-[0.7rem] font-semibold text-outline tracking-wider uppercase ml-1">Phone Number</label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors">call</span>
+<input class="w-full pl-12 pr-4 py-[12px] bg-surface-container-lowest border border-[#E2E8F0] rounded-[10px] focus:ring-2 focus:ring-primary-container focus:border-primary-container outline-none transition-all placeholder:text-outline-variant/60 font-label" placeholder="+1 (555) 000-0000" type="tel"/>
+</div>
+</div>
+<!-- Password Input Group -->
+<div class="space-y-1.5">
+<div class="flex justify-between items-center ml-1">
+<label class="block font-label text-[0.7rem] font-semibold text-outline tracking-wider uppercase">Password</label>
+<a class="font-label text-[0.7rem] text-secondary hover:underline underline-offset-4" href="#">Forgot?</a>
+</div>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors">lock</span>
+<input class="w-full pl-12 pr-4 py-[12px] bg-surface-container-lowest border border-[#E2E8F0] rounded-[10px] focus:ring-2 focus:ring-primary-container focus:border-primary-container outline-none transition-all placeholder:text-outline-variant/60 font-label" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<!-- Primary Action -->
+<button class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary font-label font-bold py-4 rounded-[10px] shadow-sm hover:shadow-md transition-all active:scale-[0.98] mt-4" type="submit">
+                        Sign in
+                    </button>
+</form>
+<!-- Alternative Actions -->
+<div class="mt-8 space-y-4">
+<div class="relative flex items-center justify-center">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-outline-variant/30"></div>
+</div>
+<span class="relative px-4 bg-surface-container-lowest text-outline font-label text-xs">or continue with</span>
+</div>
+<button class="w-full flex items-center justify-center gap-3 bg-surface-container-low hover:bg-surface-container-high text-on-surface font-label font-semibold py-3.5 rounded-[10px] border border-outline-variant/20 transition-colors">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+                        Connect wallet
+                    </button>
+</div>
+<!-- Footer Links -->
+<div class="mt-10 text-center border-t border-outline-variant/10 pt-8">
+<p class="font-label text-sm text-on-surface-variant">
+                        New to the circle? 
+                        <a class="text-primary font-bold hover:underline underline-offset-4 ml-1" href="#">Register</a>
+</p>
+</div>
+</div>
+</div>
+<!-- System Narrative Info (Asymmetric Layout element) -->
+<div class="mt-8 px-4 flex justify-between items-start opacity-60">
+<div class="max-w-[200px]">
+<p class="font-headline italic text-sm text-on-surface-variant leading-relaxed">
+                    "Secure, transparent, and community-driven. The modern custodian of your digital assets."
+                </p>
+</div>
+<div class="text-right">
+<span class="font-label text-[10px] tracking-widest uppercase text-outline block mb-1">Status</span>
+<div class="flex items-center justify-end gap-2">
+<div class="w-2 h-2 rounded-full bg-primary-container shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
+<span class="font-label text-xs font-medium text-on-surface">Mainnet Active</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Decorative Corner Elements -->
+<div class="fixed bottom-0 left-0 w-64 h-64 opacity-5 pointer-events-none">
+<img class="w-full h-full object-contain" data-alt="Intricate geometric Kente weaving pattern with repeating square and linear motifs in dark green tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCKxTgGYWw1OZ0pyy8hdZOf_vw5gxqUgXXhXd2SqA_RAlGZy8aaZNB7ZcN3VazmZMgeiAPYR4krmhV3UIVunsnv-HIeKcLsLNP1uMssdDYLN-VTPz_8Y-SOPGBs5x3OxAyJWZT9_4rJIqa9ZeAZT7iTgeDqiPozPlN_bq2BMFvLioHLhOjJGnM7s85w98OdQPBZrCbja-x6gjUf_7rU9Lx1nwJXzEXWBThuwJnGhIz1EcTWXXcS0QAcPG_VNmdcEPfK5ULBhJXGiDvZ"/>
+</div>
+</body></html>

@@ -24,6 +24,7 @@ export default function Profile({ account, backendUser, balance, onNavigate }) {
   const [ethBalance, setEthBalance] = useState(balance || null);
   const [lockedValue, setLockedValue] = useState(0);
   const [totalSavings, setTotalSavings] = useState(0);
+  // eslint-disable-next-line no-unused-vars
   const [reputationScore, setReputationScore] = useState(95);
   
   // Form state

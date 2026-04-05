@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import './Transactions.css';
-import { GROUP_ABI, FACTORY_CONTRACT_ADDRESS, FACTORY_ABI } from '../contracts/config';
+import { GROUP_ABI, FACTORY_ADDRESS, FACTORY_ABI } from '../contracts/config';
 
 function Transactions({ onNavigate, account, signer }) {
   const [loading, setLoading] = useState(true);
@@ -13,15 +13,15 @@ function Transactions({ onNavigate, account, signer }) {
     if (account && signer) {
       fetchTransactions();
     }
-  }, [account, signer]);
+  }, [account, signer, fetchTransactions]);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
 
     try {
       // Get Factory contract to retrieve user's circles
       const factoryContract = new ethers.Contract(
-        FACTORY_CONTRACT_ADDRESS,
+        FACTORY_ADDRESS,
         FACTORY_ABI,
         signer
       );
@@ -175,7 +175,7 @@ function Transactions({ onNavigate, account, signer }) {
     }
 
     setLoading(false);
-  };
+  }, [account, signer]);
 
   // Filter transactions
   const filteredTransactions = transactions.filter(tx => {

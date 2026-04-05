@@ -31,12 +31,18 @@ export const GROUP_ABI = [
   "function members(address) view returns (string,bytes32,bool,bool,bool,uint256)",
   "function memberList(uint256) view returns (address)",
   "function hasPaid(address,uint256) view returns (bool)",
+  "function isMember(address) view returns (bool)",
+  "function isActive() view returns (bool)",
+  "function name() view returns (string)",
+  "function getTotalMembers() view returns (uint256)",
   "function joinGroup(string,string,string) payable",
   "function payContribution() payable",
   "function flagDefault(address)",
   "event MemberJoined(address,string)",
   "event ContributionPaid(address,uint256,bool)",
-  "event PayoutReleased(address,uint256,uint256)"
+  "event ContributionMade(address indexed member, uint256 amount, uint256 cycle)",
+  "event PayoutReleased(address,uint256,uint256)",
+  "event PayoutDistributed(address indexed recipient, uint256 amount, uint256 cycle)"
 ];
 
 export const REPUTATION_ABI = [

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import './Analytics.css';
-import { GROUP_ABI, FACTORY_CONTRACT_ADDRESS, FACTORY_ABI } from '../contracts/config';
+import { GROUP_ABI, FACTORY_ADDRESS, FACTORY_ABI } from '../contracts/config';
 
 function Analytics({ onNavigate, account, signer }) {
   const [loading, setLoading] = useState(true);
@@ -25,15 +25,15 @@ function Analytics({ onNavigate, account, signer }) {
     if (account && signer) {
       fetchAnalytics();
     }
-  }, [account, signer, timeframe]);
+  }, [account, signer, timeframe, fetchAnalytics]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true);
 
     try {
       // Get Factory contract to retrieve user's circles
       const factoryContract = new ethers.Contract(
-        FACTORY_CONTRACT_ADDRESS,
+        FACTORY_ADDRESS,
         FACTORY_ABI,
         signer
       );
@@ -72,8 +72,6 @@ function Analytics({ onNavigate, account, signer }) {
 
           // Get circle details
           const circleName = await groupContract.name();
-          const contributionAmount = await groupContract.contributionAmount();
-          const totalMembers = await groupContract.getTotalMembers();
           const isActive = await groupContract.isActive();
 
           if (!isActive) {
@@ -220,7 +218,7 @@ function Analytics({ onNavigate, account, signer }) {
     }
 
     setLoading(false);
-  };
+  }, [account, signer, timeframe]);
 
   const generateMonthlyBreakdown = (payouts, timeframe) => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
