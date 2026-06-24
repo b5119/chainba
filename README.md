@@ -1,41 +1,32 @@
 # 🪙 ChainBa — Blockchain-Powered Chilimba Platform
 
-> **CCS4711 — Cryptography & Applications**
-> Lecturer: Mr Victor Neene
-> Group Name: **Chain Keepers**
+> A decentralized web application that digitizes **Chilimba** — traditional rotating savings
+> groups — on the Ethereum blockchain. Money is held by code, not people; every contribution,
+> penalty, and payout is enforced automatically and recorded immutably on-chain.
 
-> ⚠️ **This is a university prototype built for educational purposes.** It runs on a local Hardhat blockchain using test ETH. Do not use with real funds or deploy to mainnet without a professional security audit.
-
----
-
-## 👥 Group Members & Roles
-
-| Student | Role | Responsibility |
-|---|---|---|
-| Frank Bwalya | Smart Contracts | Solidity contracts, identity hashing, reputation system, security hardening |
-| [Student 2 Name] | User Interaction & Wallet | Registration, login, wallet auto-creation, backend API, JWT auth |
-| [Student 3 Name] | Blockchain Infrastructure | Hardhat setup, deployment scripts, test suite (23 passing) |
-| [Student 4 Name] | User Interface | React frontend, all pages, MetaMask integration, session management |
+> ⚠️ **Prototype / educational software.** It runs on a local Hardhat blockchain using test ETH.
+> Do not use with real funds or deploy to a public network without a professional security audit.
 
 ---
 
-## 🧠 Problem Statement
+## 🧠 Problem
 
-Traditional Zambian Chilimba (rotating savings groups) operate entirely on trust with no contracts, payment records, or fraud protection. Common problems include:
+Traditional Zambian Chilimba (rotating savings groups) operate entirely on trust, with no
+contracts, payment records, or fraud protection. Common failure modes include:
 
 - Organisers disappearing with pooled funds
 - Members disputing payment records
-- No verification of a member's past behaviour
-- Early recipients facing no enforced obligation to continue paying
+- No way to verify a member's past behaviour
+- Early recipients facing no enforced obligation to keep paying
 - No transparent audit trail
 
-## ✅ Our Solution
+## ✅ Solution
 
-**ChainBa** is a decentralised web application built on Ethereum blockchain that digitises and automates Chilimba through smart contracts:
+**ChainBa** moves the rules of a Chilimba into Ethereum smart contracts:
 
-- Money is held by **code, not people** — nobody can run away with funds
-- All contributions, penalties and payouts are **immutably recorded on-chain**
-- Rules are enforced **automatically** — no human arbitration needed
+- Funds are held by **code, not people** — nobody can run away with the pool
+- All contributions, penalties, and payouts are **immutably recorded on-chain**
+- Group rules are enforced **automatically** — no human arbitration needed
 - Every member builds a **permanent reputation score** visible to future groups
 
 ---
@@ -82,7 +73,7 @@ chainba/
 │       │   └── Admin.js          # Admin panel (password protected)
 │       ├── contracts/
 │       │   ├── config.js         # ABIs + contract addresses
-│       │   └── addresses.json    # Deployed addresses (auto-generated, gitignored)
+│       │   └── addresses.json    # Deployed addresses (auto-generated)
 │       ├── api.js                # Dynamic base URL config
 │       └── App.js                # Routing + session management + MetaMask listener
 ├── chainba-backend/
@@ -105,7 +96,7 @@ chainba/
 
 ---
 
-## ⚙️ Prerequisites — Install These First
+## ⚙️ Prerequisites
 
 ### 1. Node.js via NVM
 ```bash
@@ -141,7 +132,7 @@ Recommended extensions: **Solidity** (Juan Blanco), **Prettier**, **ES7 React Sn
 
 ---
 
-## 🚀 Setup Guide — Step by Step
+## 🚀 Setup Guide
 
 ### Step 1 — Clone the Repository
 ```bash
@@ -340,7 +331,7 @@ Layer 4 — Backend Security:
   SHA-256 identity hashing on backend mirrors on-chain approach
 ```
 
-### Known Limitations (Documented)
+### Known Limitations
 
 - Block timestamp can be manipulated by miners (±15 seconds)
 - Beneficiary selection uses pseudo-random keccak256 — not true randomness
@@ -406,7 +397,7 @@ Current test results:
 **Register request body:**
 ```json
 {
-  "fullName": "Frank Bwalya",
+  "fullName": "Jane Banda",
   "phone": "0974831002",
   "nrcNumber": "123456/78/1",
   "password": "yourpassword"
@@ -482,18 +473,18 @@ When you run `npx hardhat node`, Hardhat generates 20 deterministic test account
 
 ---
 
-## 🌍 Production Roadmap (Beyond Assignment)
+## 🌍 Production Roadmap
 
 For real-world deployment in Zambia:
 
 1. Deploy on **Polygon network** — gas fees ~$0.001 vs Ethereum's $5–50
-2. Integrate **AirtelMoney** payment gateway for ZMW deposits
+2. Integrate **mobile-money** payment gateways (e.g. AirtelMoney) for ZMW deposits
 3. Replace ETH with **USDC stablecoin** — users never interact with crypto directly
 4. Obtain **Bank of Zambia** Payment Service Provider licence
-5. Add **USSD support** (`*123#`) for feature phone users
-6. Build **React Native mobile app**
-7. Replace frontend-only admin panel with proper role-based backend auth
-8. Commission professional **smart contract security audit** before any mainnet deployment
+5. Add **USSD support** (`*123#`) for feature-phone users
+6. Build a **React Native mobile app**
+7. Replace the frontend-only admin panel with proper role-based backend auth
+8. Commission a professional **smart contract security audit** before any mainnet deployment
 
 ---
 
@@ -520,54 +511,10 @@ cd ~/chainba/chainba-frontend && npm start
 
 # Check MongoDB users
 mongosh chainba --eval "db.users.find().pretty()"
-
-# Push to GitHub
-cd ~/chainba && git add . && git commit -m "message" && git push origin master
 ```
 
 ---
 
-## 🤝 Git Workflow
+## 📄 License
 
-Each student works only in their assigned folder to avoid merge conflicts:
-
-| Student | Work Only In |
-|---|---|
-| Student 1 | `contracts/` |
-| Student 2 | `chainba-backend/` |
-| Student 3 | `test/` and `scripts/` |
-| Student 4 | `chainba-frontend/` |
-
-```bash
-# Before starting work
-git pull origin master
-
-# After making changes
-git add .
-git commit -m "Student X: description of change"
-git push origin master
-```
-
----
-
-## 📄 Assignment Deliverables Checklist
-
-- [x] GitHub repository — https://github.com/b5119/chainba
-- [x] Smart contracts (3 files) — Student 1
-- [x] Deployment scripts — Student 3
-- [x] Test suite (23 passing) — Student 3
-- [x] React frontend (8 pages) — Student 4
-- [x] Backend API — Student 2
-- [x] README documentation
-- [ ] Individual written reflections — all students
-- [ ] Live demo during presentation
-
----
-
-## 📜 License
-
-This project was built for academic purposes. See [LICENSE](LICENSE) for details.
-
----
-
-*ChainBa — Chain Keepers | CCS4711 Cryptography & Applications | Mr Victor Neene*
+Released under the terms in [LICENSE](LICENSE).
