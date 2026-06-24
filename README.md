@@ -1,15 +1,17 @@
-# 🪙 ChainBa — Blockchain-Powered Chilimba Platform
+# ChainBa — Blockchain-Powered Chilimba Platform
 
-> A decentralized web application that digitizes **Chilimba** — traditional rotating savings
-> groups — on the Ethereum blockchain. Money is held by code, not people; every contribution,
-> penalty, and payout is enforced automatically and recorded immutably on-chain.
+A decentralized web application that digitizes **Chilimba** — traditional rotating savings
+groups — on the Ethereum blockchain. Funds are held by smart-contract code rather than an
+organiser, and every contribution, penalty, and payout is enforced automatically and recorded
+immutably on-chain.
 
-> ⚠️ **Prototype / educational software.** It runs on a local Hardhat blockchain using test ETH.
-> Do not use with real funds or deploy to a public network without a professional security audit.
+> **Note:** This is prototype / educational software. It runs on a local Hardhat blockchain
+> using test ETH. Do not use it with real funds or deploy it to a public network without a
+> professional security audit.
 
 ---
 
-## 🧠 Problem
+## Problem
 
 Traditional Zambian Chilimba (rotating savings groups) operate entirely on trust, with no
 contracts, payment records, or fraud protection. Common failure modes include:
@@ -20,18 +22,18 @@ contracts, payment records, or fraud protection. Common failure modes include:
 - Early recipients facing no enforced obligation to keep paying
 - No transparent audit trail
 
-## ✅ Solution
+## Solution
 
-**ChainBa** moves the rules of a Chilimba into Ethereum smart contracts:
+ChainBa moves the rules of a Chilimba into Ethereum smart contracts:
 
-- Funds are held by **code, not people** — nobody can run away with the pool
-- All contributions, penalties, and payouts are **immutably recorded on-chain**
-- Group rules are enforced **automatically** — no human arbitration needed
-- Every member builds a **permanent reputation score** visible to future groups
+- Funds are held by code, not people — nobody can run away with the pool
+- All contributions, penalties, and payouts are immutably recorded on-chain
+- Group rules are enforced automatically — no human arbitration needed
+- Every member builds a permanent reputation score visible to future groups
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -48,7 +50,7 @@ contracts, payment records, or fraud protection. Common failure modes include:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 chainba/
@@ -96,7 +98,7 @@ chainba/
 
 ---
 
-## ⚙️ Prerequisites
+## Prerequisites
 
 ### 1. Node.js via NVM
 ```bash
@@ -112,10 +114,10 @@ node --version   # must show v22.x.x
 Download from https://www.google.com/chrome
 
 ### 3. MetaMask Browser Extension
-1. Open Chrome → https://metamask.io/download
+1. Open Chrome and go to https://metamask.io/download
 2. Click **Add to Chrome**
 3. Create a new wallet and set a strong password
-4. **Write down your 12-word seed phrase safely offline**
+4. Write down your 12-word seed phrase safely offline
 
 ### 4. MongoDB
 ```bash
@@ -128,11 +130,11 @@ sudo systemctl start mongod && sudo systemctl enable mongod
 ### 5. VS Code (Recommended)
 Download from https://code.visualstudio.com
 
-Recommended extensions: **Solidity** (Juan Blanco), **Prettier**, **ES7 React Snippets**, **GitLens**
+Recommended extensions: Solidity (Juan Blanco), Prettier, ES7 React Snippets, GitLens.
 
 ---
 
-## 🚀 Setup Guide
+## Setup Guide
 
 ### Step 1 — Clone the Repository
 ```bash
@@ -166,19 +168,19 @@ cp ~/chainba/.env.example ~/chainba/chainba-backend/.env
 
 Then open `chainba-backend/.env` and set a strong `JWT_SECRET`. See `.env.example` for all required variables.
 
-> ⚠️ Never commit your `.env` file. It is already listed in `.gitignore`.
+> **Warning:** Never commit your `.env` file. It is already listed in `.gitignore`.
 
 ### Step 4 — Start the Local Blockchain
-Open a dedicated terminal — **keep it running always:**
+Open a dedicated terminal and keep it running:
 ```bash
 cd ~/chainba
 npx hardhat node
 ```
 
-You will see 20 test accounts each with 10,000 ETH. These accounts are for **local development only** — never send real ETH to these addresses.
+You will see 20 test accounts each with 10,000 ETH. These accounts are for local development only — never send real ETH to these addresses.
 
 ### Step 5 — Deploy Smart Contracts
-Open a NEW terminal tab:
+Open a new terminal tab:
 ```bash
 cd ~/chainba
 npx hardhat run scripts/deploy.js --network localhost
@@ -189,12 +191,12 @@ Expected output:
 Deploying with account: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 MemberReputation deployed to: 0x5FbDB2315678afecb367f032d93F642f64180aa3
 ChilimbaFactory deployed to: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
-✅ Addresses saved!
+Addresses saved.
 ```
 
 ### Step 6 — Configure MetaMask
 
-**Add Hardhat Local Network:**
+Add the Hardhat local network:
 ```
 Network Name:    Hardhat Local
 RPC URL:         http://127.0.0.1:8545
@@ -202,17 +204,15 @@ Chain ID:        31337
 Currency Symbol: ETH
 ```
 
-**Import a Test Account:**
-
-When you run `npx hardhat node`, the terminal prints 20 accounts with their addresses and private keys. Import any of these into MetaMask via:
+Import a test account: when you run `npx hardhat node`, the terminal prints 20 accounts with their addresses and private keys. Import any of these into MetaMask via:
 
 ```
-MetaMask → Click account icon → Import account → Private Key
-→ Paste the private key from your terminal output
-→ Switch to Hardhat Local network → You should see 10,000 ETH
+MetaMask -> account icon -> Import account -> Private Key
+-> paste the private key from your terminal output
+-> switch to the Hardhat Local network -> you should see 10,000 ETH
 ```
 
-> ⚠️ These are **test-only accounts** generated by Hardhat. The private keys are the same for everyone running Hardhat locally — they hold no real value. Never use them on any real network.
+> **Warning:** These are test-only accounts generated by Hardhat. The private keys are the same for everyone running Hardhat locally and hold no real value. Never use them on any real network.
 
 ### Step 7 — Start the Backend
 ```bash
@@ -232,12 +232,11 @@ cd ~/chainba/chainba-frontend
 npm start
 ```
 
-Open Chrome at the IP address shown in the terminal on port 3000.
-**Always use the IP address shown, NOT localhost.**
+Open Chrome at the IP address shown in the terminal on port 3000. Always use the IP address shown, not localhost.
 
 ---
 
-## ⚠️ Every Time You Restart
+## Restarting the Stack
 
 ```bash
 # Terminal 1 — restart blockchain
@@ -252,8 +251,8 @@ cd ~/chainba/chainba-backend && node index.js
 # Terminal 4 — restart frontend
 cd ~/chainba/chainba-frontend && npm start
 
-# MetaMask — clear nonce data (REQUIRED after redeploy)
-MetaMask → ☰ → Settings → Advanced → Clear activity and nonce data → Clear
+# MetaMask — clear nonce data (required after redeploy)
+MetaMask -> Settings -> Advanced -> Clear activity and nonce data -> Clear
 
 # Browser — hard refresh
 Ctrl + Shift + R
@@ -261,7 +260,7 @@ Ctrl + Shift + R
 
 ---
 
-## 📜 Smart Contracts
+## Smart Contracts
 
 ### MemberReputation.sol
 Stores permanent on-chain reputation scores for every member across all groups. Inherits OpenZeppelin `Ownable` and `Pausable`.
@@ -276,7 +275,7 @@ Stores permanent on-chain reputation scores for every member across all groups. 
 | `getScore(address)` | Returns current score (min 0) |
 
 ### ChilimbaGroup.sol
-Core group logic — handles the complete lifecycle of a Chilimba group. Protected with OpenZeppelin `ReentrancyGuard` and `Pausable`. Uses checks-effects-interactions pattern for all ETH transfers.
+Core group logic — handles the complete lifecycle of a Chilimba group. Protected with OpenZeppelin `ReentrancyGuard` and `Pausable`. Uses the checks-effects-interactions pattern for all ETH transfers.
 
 | Function | Description |
 |---|---|
@@ -301,7 +300,7 @@ Deploys and tracks individual group contracts. Entry point for all group creatio
 
 ---
 
-## 🔐 Security Architecture
+## Security Architecture
 
 ```
 Layer 1 — Identity Hashing (On-Chain):
@@ -335,11 +334,11 @@ Layer 4 — Backend Security:
 
 - Block timestamp can be manipulated by miners (±15 seconds)
 - Beneficiary selection uses pseudo-random keccak256 — not true randomness
-- Admin panel is protected by a password stored in the frontend — **not suitable for production**. In a real deployment this must be replaced with proper role-based authentication on the backend
+- The admin panel is protected by a password stored in the frontend and is not suitable for production. In a real deployment this must be replaced with proper role-based authentication on the backend.
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 
 ```bash
 cd ~/chainba
@@ -383,9 +382,9 @@ Current test results:
 
 ---
 
-## 🌐 Backend API Endpoints
+## Backend API Endpoints
 
-**Base URL:** `http://<your-ip>:5000`
+Base URL: `http://<your-ip>:5000`
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
@@ -394,7 +393,7 @@ Current test results:
 | GET | `/api/profile/me` | JWT Bearer | Get profile + ETH balance |
 | GET | `/api/admin/users` | x-admin-key header | List all registered users |
 
-**Register request body:**
+Register request body:
 ```json
 {
   "fullName": "Jane Banda",
@@ -404,7 +403,7 @@ Current test results:
 }
 ```
 
-**Login request body:**
+Login request body:
 ```json
 {
   "phone": "0974831002",
@@ -414,7 +413,7 @@ Current test results:
 
 ---
 
-## 🖥️ Frontend Pages
+## Frontend Pages
 
 | Page | Route | Description |
 |---|---|---|
@@ -429,15 +428,15 @@ Current test results:
 
 ---
 
-## 🧪 Hardhat Test Accounts
+## Hardhat Test Accounts
 
 When you run `npx hardhat node`, Hardhat generates 20 deterministic test accounts. The addresses and private keys are printed directly in your terminal at startup — use those to import accounts into MetaMask.
 
-> ⚠️ These accounts use **publicly known private keys** that are the same for everyone running Hardhat. They only hold test ETH on your local network and have **no real-world value**. Never send real ETH to these addresses and never use these keys on any other network.
+> **Warning:** These accounts use publicly known private keys that are the same for everyone running Hardhat. They only hold test ETH on your local network and have no real-world value. Never send real ETH to these addresses and never use these keys on any other network.
 
 ---
 
-## ✅ Completed Features
+## Completed Features
 
 - [x] Local Ethereum blockchain via Hardhat
 - [x] MemberReputation smart contract (Ownable + Pausable)
@@ -446,7 +445,7 @@ When you run `npx hardhat node`, Hardhat generates 20 deterministic test account
 - [x] OpenZeppelin 4.9.3 security libraries integrated
 - [x] Checks-effects-interactions pattern on all ETH transfers
 - [x] Contract compilation and deployment with auto address saving
-- [x] Full test suite — **23 tests passing**
+- [x] Full test suite — 23 tests passing
 - [x] React frontend with session persistence (localStorage)
 - [x] MetaMask auto-connection on page load
 - [x] MetaMask account change listener
@@ -460,7 +459,7 @@ When you run `npx hardhat node`, Hardhat generates 20 deterministic test account
 - [x] Contribution payment via MetaMask
 - [x] Automatic payout when all members pay
 - [x] Reputation score updates after every payment
-- [x] Cycle progression (Cycle 1 → Cycle 2 → ...)
+- [x] Cycle progression (Cycle 1 -> Cycle 2 -> ...)
 - [x] Profile page with identity hash display
 - [x] Admin panel with registered user management
 - [x] Rate limiting — 10 auth requests per 15 minutes
@@ -473,22 +472,22 @@ When you run `npx hardhat node`, Hardhat generates 20 deterministic test account
 
 ---
 
-## 🌍 Production Roadmap
+## Production Roadmap
 
 For real-world deployment in Zambia:
 
-1. Deploy on **Polygon network** — gas fees ~$0.001 vs Ethereum's $5–50
-2. Integrate **mobile-money** payment gateways (e.g. AirtelMoney) for ZMW deposits
-3. Replace ETH with **USDC stablecoin** — users never interact with crypto directly
-4. Obtain **Bank of Zambia** Payment Service Provider licence
-5. Add **USSD support** (`*123#`) for feature-phone users
-6. Build a **React Native mobile app**
+1. Deploy on the Polygon network — gas fees roughly $0.001 versus Ethereum's $5–50
+2. Integrate mobile-money payment gateways (e.g. AirtelMoney) for ZMW deposits
+3. Replace ETH with the USDC stablecoin so users never interact with crypto directly
+4. Obtain a Bank of Zambia Payment Service Provider licence
+5. Add USSD support (`*123#`) for feature-phone users
+6. Build a React Native mobile app
 7. Replace the frontend-only admin panel with proper role-based backend auth
-8. Commission a professional **smart contract security audit** before any mainnet deployment
+8. Commission a professional smart contract security audit before any mainnet deployment
 
 ---
 
-## 💡 Useful Commands
+## Useful Commands
 
 ```bash
 # Compile contracts
@@ -515,6 +514,6 @@ mongosh chainba --eval "db.users.find().pretty()"
 
 ---
 
-## 📄 License
+## License
 
 Released under the terms in [LICENSE](LICENSE).
