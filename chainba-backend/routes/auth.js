@@ -6,11 +6,18 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const router = express.Router();
 
+// Reject non-string inputs. Without this, a JSON body like {"phone": {"$gt": ""}}
+// turns a findOne() into a NoSQL operator query (injection).
+const isNonEmptyString = (v) => typeof v === 'string' && v.trim().length > 0;
+
 router.post('/register', async (req, res) => {
   try {
     const { fullName, phone, nrcNumber, password } = req.body;
-    if (!fullName || !phone || !nrcNumber || !password)
+    if (![fullName, phone, nrcNumber, password].every(isNonEmptyString))
       return res.status(400).json({ error: 'All fields are required' });
+
+    if (password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
     // Check each duplicate separately for specific messages
     const phoneExists = await User.findOne({ phone });
@@ -41,24 +48,26 @@ router.post('/register', async (req, res) => {
       user: { fullName: user.fullName, phone: user.phone, walletAddress: wallet.address, identityHash }
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error('Register error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 router.post('/login', async (req, res) => {
   try {
     const { phone, password } = req.body;
-    if (!phone || !password)
+    if (!isNonEmptyString(phone) || !isNonEmptyString(password))
       return res.status(400).json({ error: 'Phone and password are required' });
 
     const user = await User.findOne({ phone });
-    if (!user)
-      return res.status(400).json({ error: 'No account found with this phone number. Please register first.' });
 
-    const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid)
-      return res.status(400).json({ error: 'Incorrect password. Please try again.' });
+    // Always run a bcrypt comparison (even when the user is missing) so that
+    // response timing does not reveal whether an account exists.
+    const hash = user ? user.passwordHash : '$2a$12$0000000000000000000000000000000000000000000000000000a';
+    const valid = await bcrypt.compare(password, hash);
+
+    if (!user || !valid)
+      return res.status(400).json({ error: 'Invalid phone number or password.' });
 
     const token = jwt.sign(
       { userId: user._id, walletAddress: user.walletAddress },
@@ -69,11 +78,11 @@ router.post('/login', async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      user: { fullName: user.fullName, phone: user.phone, walletAddress: user.walletAddress, identityHash: user.identityHash }
+      user: { fullName: user.fullName, phone: user.phone, walletAddress: user.walletAddress, identityHash: user.identityHash, isAdmin: user.isAdmin }
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

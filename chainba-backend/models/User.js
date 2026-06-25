@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   encryptedKey:        { type: String, required: true },
   identityHash:        { type: String, required: true },
   email:               { type: String, default: '' },
+  isAdmin:             { type: Boolean, default: false },
   twoFactorEnabled:    { type: Boolean, default: false },
   emailNotifications:  { type: Boolean, default: true },
   smsNotifications:    { type: Boolean, default: false },
