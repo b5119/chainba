@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ChainBa | Dashboard</title>
+<!-- Google Fonts: Newsreader for Serif, Inter/Manrope for Sans -->
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400&amp;family=Inter:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "outline-variant": "#bbcabf",
+            "inverse-surface": "#2d3133",
+            "on-primary-fixed-variant": "#005236",
+            "surface-tint": "#006c49",
+            "primary": "#006c49",
+            "on-secondary-fixed": "#07006c",
+            "surface-container-highest": "#e0e3e5",
+            "on-secondary": "#ffffff",
+            "tertiary": "#855300",
+            "primary-fixed": "#6ffbbe",
+            "surface-container-low": "#f2f4f6",
+            "on-primary-fixed": "#002113",
+            "on-tertiary-fixed-variant": "#653e00",
+            "primary-container": "#10b981",
+            "on-tertiary-container": "#523200",
+            "inverse-on-surface": "#eff1f3",
+            "surface-container-high": "#e6e8ea",
+            "tertiary-fixed-dim": "#ffb95f",
+            "tertiary-container": "#e29100",
+            "secondary-fixed-dim": "#c0c1ff",
+            "surface": "#f7f9fb",
+            "on-secondary-container": "#fffbff",
+            "on-primary-container": "#00422b",
+            "secondary-container": "#6063ee",
+            "on-error-container": "#93000a",
+            "tertiary-fixed": "#ffddb8",
+            "on-surface-variant": "#3c4a42",
+            "on-background": "#191c1e",
+            "error": "#ba1a1a",
+            "secondary-fixed": "#e1e0ff",
+            "on-secondary-fixed-variant": "#2f2ebe",
+            "inverse-primary": "#4edea3",
+            "on-tertiary-fixed": "#2a1700",
+            "outline": "#6c7a71",
+            "surface-container": "#eceef0",
+            "surface-variant": "#e0e3e5",
+            "primary-fixed-dim": "#4edea3",
+            "background": "#f7f9fb",
+            "on-primary": "#ffffff",
+            "on-tertiary": "#ffffff",
+            "error-container": "#ffdad6",
+            "surface-bright": "#f7f9fb",
+            "secondary": "#4648d4",
+            "on-error": "#ffffff",
+            "surface-dim": "#d8dadc",
+            "surface-container-lowest": "#ffffff",
+            "on-surface": "#191c1e"
+          },
+          fontFamily: {
+            "headline": ["Newsreader", "serif"],
+            "body": ["Manrope", "sans-serif"],
+            "label": ["Inter", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "2xl": "1.25rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+<style>
+    .kente-shimmer {
+      background: linear-gradient(90deg, #006c49 0%, #855300 25%, #4648d4 50%, #006c49 75%, #855300 100%);
+      background-size: 200% 100%;
+      animation: shimmer 8s linear infinite;
+    }
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to { background-position: 0% 0; }
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased">
+<!-- TopAppBar Navigation -->
+<header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md shadow-sm h-20 flex justify-between items-center px-8 max-w-full mx-auto">
+<div class="flex items-center gap-12">
+<h1 class="text-2xl font-bold tracking-tight text-emerald-800 font-headline">ChainBa</h1>
+<nav class="hidden md:flex gap-8 items-center h-full">
+<a class="text-emerald-700 font-semibold border-b-2 border-emerald-600 px-1 py-6 transition-colors" href="#">Dashboard</a>
+<a class="text-slate-600 hover:text-emerald-600 px-1 py-6 transition-colors" href="#">Circles</a>
+<a class="text-slate-600 hover:text-emerald-600 px-1 py-6 transition-colors" href="#">Markets</a>
+<a class="text-slate-600 hover:text-emerald-600 px-1 py-6 transition-colors" href="#">Governance</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden lg:flex flex-col items-end mr-2">
+<span class="text-xs font-label font-bold text-outline">0x71C...4921</span>
+<span class="text-[10px] text-primary font-bold uppercase tracking-widest">Verified Member</span>
+</div>
+<button class="bg-primary hover:bg-primary-container text-white px-5 py-2.5 rounded-[10px] font-semibold text-sm transition-all duration-200 active:scale-95 shadow-md shadow-primary/10">
+        Connect Wallet
+      </button>
+<div class="w-10 h-10 rounded-full bg-surface-container-high border-2 border-white overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="close up minimalist portrait of a professional in warm lighting with soft background blur" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaD3Q-WtlELCZ8vRAwrWakwPooh6nXzVBw0l55feYHWrXpd1Wqus8moMGIfo6wSq-8gMHmmAQd_v-1sK3drYkc0WYOTTRi1STKLKp2DZ94-QQfYHWkEpPZqU2ayci1VFhkWmX_SOn2NDFypdBZQbn1HQ-XIsxMsNfzysrCTdlSQ7m2O2PcskQd4g074c68Virp6XRYYsjlHh9zxZM3gteJswkzxVzViuY5S-kdkm9K8AsJKmSkQNfEAVpt_ogu1XYCZizSgksPTpnP"/>
+</div>
+</div>
+</header>
+<main class="pt-32 pb-20 px-4 md:px-12 lg:px-24 max-w-7xl mx-auto">
+<!-- Hero Greeting -->
+<section class="mb-12">
+<h2 class="font-headline text-5xl md:text-6xl text-on-surface mb-4 tracking-tight">Good morning, <span class="italic text-primary">Alex</span>.</h2>
+<p class="text-on-surface-variant max-w-xl text-lg leading-relaxed">Your digital assets are currently participating in 4 community cycles. Your reputation is growing steadily.</p>
+</section>
+<!-- Kente Divider -->
+<div class="w-full h-[4px] kente-shimmer rounded-full mb-12 opacity-80"></div>
+<!-- Stats Bento Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+<!-- ETH Balance -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-emerald-50 relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full group-hover:scale-125 transition-transform duration-500"></div>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-label text-xs font-bold uppercase tracking-wider text-outline">ETH Balance</span>
+</div>
+<div class="flex flex-col">
+<span class="text-3xl font-headline font-bold text-on-surface">12.48 ETH</span>
+<span class="text-primary text-sm font-semibold">+$420.12 (24h)</span>
+</div>
+</div>
+<!-- Reputation Score -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-transparent hover:border-secondary/10 transition-all group">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-secondary" data-icon="verified">verified</span>
+<span class="font-label text-xs font-bold uppercase tracking-wider text-outline">Reputation</span>
+</div>
+<div class="flex flex-col">
+<span class="text-3xl font-headline font-bold text-on-surface">942</span>
+<span class="text-secondary text-sm font-semibold">Top 5% Globally</span>
+</div>
+</div>
+<!-- Active Circles -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-transparent hover:border-tertiary/10 transition-all">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-tertiary" data-icon="group">group</span>
+<span class="font-label text-xs font-bold uppercase tracking-wider text-outline">Active Circles</span>
+</div>
+<div class="flex flex-col">
+<span class="text-3xl font-headline font-bold text-on-surface">04</span>
+<span class="text-tertiary text-sm font-semibold">Next payout in 2d</span>
+</div>
+</div>
+<!-- Total Contributed -->
+<div class="bg-on-surface text-surface-container-lowest p-6 rounded-2xl shadow-xl transition-all">
+<div class="flex items-center gap-3 mb-4 opacity-70">
+<span class="material-symbols-outlined" data-icon="savings">savings</span>
+<span class="font-label text-xs font-bold uppercase tracking-wider">Total Contributed</span>
+</div>
+<div class="flex flex-col">
+<span class="text-3xl font-headline font-bold text-white">$42,500</span>
+<span class="text-emerald-400 text-sm font-semibold">Cumulative Volume</span>
+</div>
+</div>
+</div>
+<!-- Circles Section Header -->
+<div class="flex justify-between items-end mb-8">
+<div>
+<h3 class="font-headline text-3xl font-bold">Your Circles</h3>
+<p class="text-on-surface-variant font-body">Manage your community contributions and cycle payouts.</p>
+</div>
+<button class="bg-secondary text-white px-6 py-3 rounded-[10px] font-bold text-sm flex items-center gap-2 hover:bg-secondary-container transition-all shadow-lg shadow-secondary/20 active:scale-95">
+<span class="material-symbols-outlined text-sm" data-icon="add_circle">add_circle</span>
+        Create Circle
+      </button>
+</div>
+<!-- Circle Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 flex flex-col md:flex-row gap-6 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group">
+<div class="w-full md:w-32 h-32 rounded-xl bg-surface-container-high overflow-hidden flex-shrink-0">
+<img alt="Circle Cover" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="vibrant overhead shot of a colorful west african marketplace with rich textile textures and sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEe8UtYBOrOKwFYB1lfceKKBnoESwOWI33MNf8LgZqsOon716OdpEr1UFgLcBTDKbHQNEOCHBssdyqEL8JGzQQafLiyOn5X1OdPTU6ToZL3OubpJL6Xz3YTjrKuK-Kb1v4dUdZXJcZ5329w_ryEvqgzp-vDJQ1OwXtTO9Gq7GYRVmRQn9HTxrrPVDRTKr-6ov8P1IAAYvdyhMocti2TEYwWBnRcZC4O5gtXcZKEFT1JW4uxr1Zivfj9JMS3Ja1iu17_IZbFjUaGgv4"/>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-headline text-2xl font-bold">Accra Tech Collective</h4>
+<span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter">Active</span>
+</div>
+<p class="text-on-surface-variant text-sm mb-6 font-body leading-relaxed">Bi-weekly contribution for startup hardware financing in Greater Accra.</p>
+<div class="flex items-center gap-6 mb-6">
+<div class="flex flex-col">
+<span class="text-[10px] text-outline font-bold uppercase">Members</span>
+<div class="flex -space-x-2 mt-1">
+<div class="w-6 h-6 rounded-full border-2 border-white bg-slate-200"></div>
+<div class="w-6 h-6 rounded-full border-2 border-white bg-slate-300"></div>
+<div class="w-6 h-6 rounded-full border-2 border-white bg-slate-400"></div>
+<div class="w-6 h-6 rounded-full border-2 border-white bg-emerald-100 flex items-center justify-center text-[8px] font-bold">+8</div>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-outline font-bold uppercase">Contribution</span>
+<span class="font-bold text-sm">0.5 ETH / Cycle</span>
+</div>
+</div>
+<button class="w-full py-3 rounded-[10px] bg-surface-container-low text-on-surface font-bold text-sm hover:bg-surface-container-high transition-colors">View Details</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-2xl p-8 flex flex-col md:flex-row gap-6 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group">
+<div class="w-full md:w-32 h-32 rounded-xl bg-surface-container-high overflow-hidden flex-shrink-0">
+<img alt="Circle Cover" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="abstract painting with deep emerald greens and golden geometric patterns with soft light grain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCa8XJ82kpmXXTb3ouJmlUfLWxfvOkxW8VWws7wuWx9nwrHeu3Uw4ULQs2J4uexaTsR6PGfCHr-k8Jn2BQnmzEeKkXD8imGPx-YHJZ734yuXanK9wPQcMEd8TnEpnWd5pshG2CeehokONey0ew_SRqSGRJGSdWJ0m19b4CXQgsg3aEIPZn1ItGJddjHEAOwsJ0Lp3mNd85c20gAIjK_qPnNj7N5VlsqTsyu8p7IPUviITkrN9M3HcobJu_jHPaR4ZrO-M3xvp8z9mxe"/>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-2">
+<h4 class="font-headline text-2xl font-bold">Family Legacy Fund</h4>
+<span class="bg-secondary/10 text-secondary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter">Open</span>
+</div>
+<p class="text-on-surface-variant text-sm mb-6 font-body leading-relaxed">Closed circle for estate management and collective inheritance staking.</p>
+<div class="flex items-center gap-6 mb-6">
+<div class="flex flex-col">
+<span class="text-[10px] text-outline font-bold uppercase">Members</span>
+<div class="flex -space-x-2 mt-1">
+<div class="w-6 h-6 rounded-full border-2 border-white bg-slate-200"></div>
+<div class="w-6 h-6 rounded-full border-2 border-white bg-slate-300"></div>
+<div class="w-6 h-6 rounded-full border-2 border-white bg-slate-400"></div>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-outline font-bold uppercase">Contribution</span>
+<span class="font-bold text-sm">2.0 ETH / Cycle</span>
+</div>
+</div>
+<button class="w-full py-3 rounded-[10px] bg-surface-container-low text-on-surface font-bold text-sm hover:bg-surface-container-high transition-colors">View Details</button>
+</div>
+</div>
+</div>
+<!-- Empty State / Footer Illustration Section -->
+<div class="mt-24 text-center py-16 px-8 bg-surface-container-low/50 rounded-3xl border border-dashed border-outline-variant/30">
+<div class="mb-6 inline-flex p-4 bg-white rounded-2xl shadow-sm">
+<span class="material-symbols-outlined text-primary text-5xl" data-icon="potted_plant">potted_plant</span>
+</div>
+<h3 class="font-headline text-2xl font-bold mb-2">Ready to expand your reach?</h3>
+<p class="text-on-surface-variant max-w-sm mx-auto mb-8">Join new circles to diversify your community trust and increase your reputation score.</p>
+<a class="text-primary font-bold hover:underline underline-offset-8 transition-all" href="#">Explore Public Circles →</a>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 px-8 border-t-4 border-emerald-600/20 bg-slate-50 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+<div class="flex flex-col items-center md:items-start gap-2">
+<h5 class="text-lg font-serif italic text-emerald-900">ChainBa</h5>
+<p class="font-sans text-sm tracking-wide text-slate-500">© 2024 ChainBa Decentralized Finance. The Modern Custodian.</p>
+</div>
+<div class="flex gap-8">
+<a class="text-slate-500 hover:text-emerald-600 transition-opacity font-sans text-sm tracking-wide underline decoration-emerald-500 underline-offset-4" href="#">Documentation</a>
+<a class="text-slate-500 hover:text-emerald-600 transition-opacity font-sans text-sm tracking-wide underline decoration-emerald-500 underline-offset-4" href="#">Community Discord</a>
+<a class="text-slate-500 hover:text-emerald-600 transition-opacity font-sans text-sm tracking-wide underline decoration-emerald-500 underline-offset-4" href="#">Terms</a>
+</div>
+</footer>
+</body></html>

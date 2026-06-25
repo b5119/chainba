@@ -1,37 +1,38 @@
 const express = require("express");
 const router = express.Router();
 const Complaint = require("../models/Complaint");
-const { authMiddleware } = require("../middleware/auth");
+const authMiddleware = require("../middleware/auth");
+const requireAdmin = require("../middleware/requireAdmin");
 
-// Submit a new complaint (leader only)
+const str = (v) => (typeof v === "string" ? v.trim() : "");
+const isAddress = (v) => /^0x[a-fA-F0-9]{40}$/.test(str(v));
+
+// Submit a new complaint (any authenticated user; the on-chain action is the
+// real authority — this just stores a record).
 router.post("/complaints", authMiddleware, async (req, res) => {
   try {
-    const {
-      groupAddress,
-      groupName,
-      reporterAddress,
-      reporterName,
-      defaulterAddress,
-      defaulterName,
-      complaintText,
-      cycle
-    } = req.body;
+    const { groupAddress, groupName, reporterAddress, reporterName,
+      defaulterAddress, defaulterName, complaintText, cycle } = req.body;
 
-    // Validate required fields
-    if (!groupAddress || !reporterAddress || !defaulterAddress || !complaintText) {
-      return res.status(400).json({ error: "Missing required fields" });
+    // Validate required fields + types (prevents injection / malformed records)
+    if (!isAddress(groupAddress) || !isAddress(reporterAddress) || !isAddress(defaulterAddress)) {
+      return res.status(400).json({ error: "Invalid or missing address fields" });
     }
+    const text = str(complaintText);
+    if (!text) return res.status(400).json({ error: "Complaint text is required" });
+    if (text.length > 2000) return res.status(400).json({ error: "Complaint text too long" });
 
-    // Create new complaint
+    const cycleNum = Number(cycle);
+
     const complaint = new Complaint({
-      groupAddress,
-      groupName: groupName || "Unknown Group",
-      reporterAddress,
-      reporterName: reporterName || "Unknown",
-      defaulterAddress,
-      defaulterName: defaulterName || "Unknown",
-      complaintText,
-      cycle: cycle || 0,
+      groupAddress: str(groupAddress),
+      groupName: str(groupName).slice(0, 200) || "Unknown Group",
+      reporterAddress: str(reporterAddress),
+      reporterName: str(reporterName).slice(0, 200) || "Unknown",
+      defaulterAddress: str(defaulterAddress),
+      defaulterName: str(defaulterName).slice(0, 200) || "Unknown",
+      complaintText: text,
+      cycle: Number.isFinite(cycleNum) ? cycleNum : 0,
       status: "pending"
     });
 
@@ -43,8 +44,8 @@ router.post("/complaints", authMiddleware, async (req, res) => {
   }
 });
 
-// Get all complaints (admin only - for future use)
-router.get("/complaints", authMiddleware, async (req, res) => {
+// Get ALL complaints — admin only (contains personal data across all groups).
+router.get("/complaints", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const complaints = await Complaint.find().sort({ createdAt: -1 });
     res.json(complaints);
@@ -54,10 +55,13 @@ router.get("/complaints", authMiddleware, async (req, res) => {
   }
 });
 
-// Get complaints for a specific group
+// Get complaints for a specific group (authenticated users).
 router.get("/complaints/:groupAddress", authMiddleware, async (req, res) => {
   try {
     const { groupAddress } = req.params;
+    if (!isAddress(groupAddress)) {
+      return res.status(400).json({ error: "Invalid group address" });
+    }
     const complaints = await Complaint.find({ groupAddress }).sort({ createdAt: -1 });
     res.json(complaints);
   } catch (error) {

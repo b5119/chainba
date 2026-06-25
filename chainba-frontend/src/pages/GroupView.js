@@ -5,26 +5,25 @@ import { GROUP_ABI } from "../contracts/config";
 import { formatDualCurrency } from "../utils/currency";
 import "./GroupView.css";
 
-// ─── Logo mark (matches Dashboard + Login) ────────────────────────────────
-function LogoMark() {
-  return (
-    <div className="gv-nav-logo-diamonds">
-      <div className="gv-diamond" style={{ width:13, height:13, background:"#10B981" }} />
-      <div className="gv-diamond" style={{ width:8, height:8, background:"#6366F1", marginLeft:"-3px", marginTop:"5px" }} />
-    </div>
-  );
-}
-
-// ─── Status badge ─────────────────────────────────────────────────────────
+// ─── Status badge component ───────────────────────────────────────────────
 function StatusBadge({ status }) {
   const map = { 0:"open", 1:"active", 2:"completed" };
   const label = map[status] ?? "unknown";
-  const cls = `gv-status-badge gv-status-${label}`;
-  return <span className={cls}>{label}</span>;
+  
+  let badgeClass = "groupview-status-badge";
+  if (label === "active") badgeClass += " groupview-status-active";
+  else if (label === "open") badgeClass += " groupview-status-open";
+  else if (label === "completed") badgeClass += " groupview-status-completed";
+  
+  return (
+    <span className={badgeClass}>
+      {label === "active" ? "Active Cycle" : label}
+    </span>
+  );
 }
 
-// ─── Member row — own component so future hooks are safe ──────────────────
-function MemberRow({ address, account, hasPaid, name, reputation, index }) {
+// ─── Member row component ─────────────────────────────────────────────────
+function MemberRow({ address, account, hasPaid, name, reputation, index, contributionAmount }) {
   const isYou = account && address.toLowerCase() === account.toLowerCase();
   const initials = name && name.length >= 2
     ? name.slice(0, 2).toUpperCase()
@@ -35,34 +34,54 @@ function MemberRow({ address, account, hasPaid, name, reputation, index }) {
     ? `${address.slice(0,6)}...${address.slice(-4)}`
     : "Unknown";
 
+  // Avatar colors based on index
+  const avatarColors = [
+    { bg: "#E1E0FF", text: "#07006C" }, // secondary-fixed
+    { bg: "#FFDDB8", text: "#2A1700" }, // tertiary-fixed
+    { bg: "#E0E3E5", text: "#3C4A42" }, // surface-container
+    { bg: "#6FFBBE", text: "#002113" }, // primary-fixed
+  ];
+  const colorSet = avatarColors[index % avatarColors.length];
+
   return (
-    <div className="gv-member-row">
-      <div className="gv-avatar">{initials}</div>
-      <div style={{ flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span className="gv-member-address" style={{ fontWeight: name ? "600" : "400" }}>
-            {displayName}
-            {isYou && <span className="gv-member-you">you</span>}
-          </span>
+    <div className="groupview-member-item">
+      <div className="groupview-member-left">
+        <div className="groupview-member-avatar" style={{ 
+          backgroundColor: colorSet.bg, 
+          color: colorSet.text 
+        }}>
+          {initials}
         </div>
-        {name && (
-          <div style={{ fontSize: "11px", color: "#64748B", marginTop: "2px", fontFamily: "monospace" }}>
-            {truncated} · Score: {reputation || 0}
-          </div>
-        )}
+        <div>
+          <p className="groupview-member-name">
+            {displayName}
+            {isYou && <span className="groupview-member-you-tag">You</span>}
+          </p>
+          <p className="groupview-member-meta">
+            Member • Score: {reputation || 0}
+          </p>
+        </div>
       </div>
-      <span className={`gv-paid-badge ${hasPaid ? "gv-paid-yes" : "gv-paid-no"}`}>
-        {hasPaid ? "✓ Paid" : "⏳ Pending"}
-      </span>
+      <div className="groupview-member-right">
+        <div className="groupview-member-contribution">
+          <p className="groupview-member-amount">
+            {contributionAmount ? formatDualCurrency(ethers.utils.formatEther(contributionAmount)) : "$0.00"}
+          </p>
+          <p className="groupview-member-label">CONTRIBUTION</p>
+        </div>
+        <span className={`groupview-member-badge ${hasPaid ? "groupview-badge-paid" : "groupview-badge-pending"}`}>
+          {hasPaid ? "Paid" : "Pending"}
+        </span>
+      </div>
     </div>
   );
 }
 
-// ─── Main GroupView ───────────────────────────────────────────────────────
+// ─── Main GroupView component ─────────────────────────────────────────────
 export default function GroupView({ account, backendUser, groupAddress, onNavigate }) {
   const [groupData,    setGroupData]    = useState(null);
   const [members,      setMembers]      = useState([]);
-  const [memberDetails, setMemberDetails] = useState([]); // {address, name, hasPaid, reputation}
+  const [memberDetails, setMemberDetails] = useState([]);
   const [memberCount,  setMemberCount]  = useState(0);
   const [paidStatus,   setPaidStatus]   = useState([]);
   const [currentCycle, setCurrentCycle] = useState(0);
@@ -75,7 +94,7 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
   // TX states
   const [contributing, setContributing] = useState(false);
   const [flagging,     setFlagging]     = useState(false);
-  const [txStatus,     setTxStatus]     = useState(""); // "pending"|"confirmed"|"error"
+  const [txStatus,     setTxStatus]     = useState("");
   const [txMessage,    setTxMessage]    = useState("");
   const [txHash,       setTxHash]       = useState("");
   
@@ -105,7 +124,6 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const contract = new ethers.Contract(groupAddress, GROUP_ABI, provider);
 
-      // Use the account prop directly (passed from App.js)
       console.log("Loading group for account:", account);
 
       const [
@@ -148,7 +166,7 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
 
       // Member list using getMembers()
       let memberList = [];
-      let memberDetails = []; // Store {address, name, hasPaid, reputation}
+      let memberDetails = [];
       const paid = [];
       let userIsMember = false;
 
@@ -179,7 +197,7 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
           let reputationScore = 0;
           try {
             const memberData = await contract.members(addr);
-            memberName = memberData[0]; // fullName is first in tuple
+            memberName = memberData[0];
             
             // Get reputation score
             try {
@@ -237,7 +255,6 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
           });
           
           if (cycleInfo.completed) {
-            // Note: totalCollected is reset to 0 after payout, so calculate from contribution * members
             const payoutAmount = contribAmount.mul(memberList.length);
             history.push({
               cycle: i,
@@ -372,7 +389,6 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
     }
   }
 
-
   // ── Flag default ─────────────────────────────────────────────────────────
   async function handleFlagDefault() {
     if (!selectedDefaulter) {
@@ -454,22 +470,27 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
     ? ethers.utils.formatEther(groupData.stakeAmount)
     : "0";
 
+  const totalPool = groupData && memberCount > 0
+    ? ethers.utils.formatEther(groupData.contributionAmount.mul(memberCount))
+    : "0";
+
   // ── Render states ────────────────────────────────────────────────────────
   if (loading) return (
-    <div className="gv-page">
-      <div className="gv-state">
-        <div className="gv-spinner" />
-        <p className="gv-state-text">Loading circle...</p>
+    <div className="groupview-page">
+      <div className="groupview-loading">
+        <div className="groupview-spinner" />
+        <p className="groupview-loading-text">Loading circle...</p>
       </div>
     </div>
   );
 
   if (error) return (
-    <div className="gv-page">
-      <div className="gv-state">
-        <p style={{ color:"#EF4444", fontSize:14, textAlign:"center", maxWidth:400 }}>{error}</p>
-        <button className="gv-back-btn" onClick={() => onNavigate("dashboard")}>
-          ← Back to dashboard
+    <div className="groupview-page">
+      <div className="groupview-loading">
+        <p style={{ color:"#BA1A1A", fontSize:14, textAlign:"center", maxWidth:400 }}>{error}</p>
+        <button className="groupview-back-btn" onClick={() => onNavigate("dashboard")}>
+          <span className="material-symbols-outlined">arrow_back</span>
+          Back to dashboard
         </button>
       </div>
     </div>
@@ -477,107 +498,103 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
 
   // ── Main render ──────────────────────────────────────────────────────────
   return (
-    <div className="gv-page">
-
-      {/* Navbar */}
-      <nav className="gv-nav">
-        <div className="gv-nav-logo" onClick={() => onNavigate("landingV2")}>
-          <LogoMark />
-          <span className="gv-nav-wordmark" style={{ marginLeft:8 }}>ChainBa</span>
+    <div className="groupview-page">
+      {/* Fixed Navigation */}
+      <nav className="groupview-nav">
+        <div className="groupview-nav-container">
+          <div className="groupview-nav-left">
+            <button className="groupview-nav-back-btn" onClick={() => onNavigate("dashboard")}>
+              <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+            <span className="groupview-nav-logo" onClick={() => onNavigate("landingV2")}>ChainBa</span>
+          </div>
+          <div className="groupview-nav-links">
+            <a href="#" onClick={() => onNavigate("dashboard")} className="groupview-nav-link">Dashboard</a>
+            <a href="#" className="groupview-nav-link groupview-nav-link-active">Circles</a>
+            <a href="#" className="groupview-nav-link">Markets</a>
+            <a href="#" className="groupview-nav-link">Governance</a>
+          </div>
+          <div className="groupview-nav-right">
+            <button className="groupview-connect-wallet-btn">
+              {account ? `${account.slice(0,6)}...${account.slice(-4)}` : "Connect Wallet"}
+            </button>
+            <div className="groupview-avatar-circle">
+              <span className="material-symbols-outlined">account_circle</span>
+            </div>
+          </div>
         </div>
-        <button className="gv-back-btn" onClick={() => onNavigate("dashboard")}>
-          ← Dashboard
-        </button>
       </nav>
 
-      <main className="gv-main">
-
-        {/* Hero card */}
-        <div className="gv-hero">
-          <div className="gv-hero-top">
+      <main className="groupview-main">
+        {/* Hero Section */}
+        <div className="groupview-hero">
+          <div className="groupview-hero-header">
             <div>
-              <h1 className="gv-group-name">{groupData?.name || "Circle"}</h1>
-              <p className="gv-leader">
-                Contract: {groupAddress?.slice(0,8)}...{groupAddress?.slice(-6)}
-                {isLeader && " · 👑 Leader"}
-                {!isMember && !isLeader && " · Join to participate"}
+              <div className="groupview-hero-badges">
+                <StatusBadge status={groupData?.status} />
+                <span className="groupview-group-id">Group ID: #{groupAddress?.slice(-6)}</span>
+              </div>
+              <h1 className="groupview-group-title">{groupData?.name || "Circle"}</h1>
+            </div>
+            <div className="groupview-hero-actions">
+              <button className="groupview-icon-btn">
+                <span className="material-symbols-outlined">share</span>
+              </button>
+              <button className="groupview-icon-btn">
+                <span className="material-symbols-outlined">settings</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Row */}
+          <div className="groupview-stats-grid">
+            <div className="groupview-stat-item">
+              <p className="groupview-stat-label">Total Pool</p>
+              <p className="groupview-stat-value groupview-stat-value-primary">{formatDualCurrency(totalPool)}</p>
+            </div>
+            <div className="groupview-stat-item">
+              <p className="groupview-stat-label">Next Payout</p>
+              <p className="groupview-stat-value">
+                {upcomingDeadline 
+                  ? upcomingDeadline.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                  : "Not set"}
               </p>
             </div>
-            <StatusBadge status={groupData?.status} />
-          </div>
-
-           {/* Stats row */}
-           <div className="gv-stats-row">
-             <div className="gv-stat">
-               <div className="gv-stat-label">Contribution</div>
-               <div className="gv-stat-value">{formatDualCurrency(contribETH)}</div>
-             </div>
-             <div className="gv-stat">
-               <div className="gv-stat-label">Members</div>
-               <div className="gv-stat-value">{memberCount} / {groupData?.memberLimit}</div>
-             </div>
-
-             <div className="gv-stat">
-               <div className="gv-stat-label">Current round</div>
-               <div className="gv-stat-value">{currentCycle}</div>
-             </div>
-           </div>
-         </div>
-
-         {/* Beneficiary payout notification — show if user is current beneficiary and all paid */}
-         {beneficiary && account && beneficiary.toLowerCase() === account.toLowerCase() && progress === 100 && (
-           <div style={{
-             padding: "16px 20px",
-             background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-             color: "white",
-             borderRadius: "12px",
-             marginBottom: "24px",
-             boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)"
-           }}>
-             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-               <span style={{ fontSize: "24px" }}>💰</span>
-               <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700" }}>
-                 You're receiving payout this round!
-               </h3>
-             </div>
-             <p style={{ margin: "4px 0 0 36px", fontSize: "14px", opacity: 0.95 }}>
-               All members have contributed. You will receive{" "}
-               <strong>{formatDualCurrency(ethers.utils.formatEther(groupData?.contributionAmount.mul(memberCount) || "0"))}</strong>
-               {" "}once the cycle is completed.
-             </p>
-           </div>
-         )}
-
-         {/* Round progress */}
-        <div className="gv-section">
-          <h2 className="gv-section-heading">Round progress</h2>
-          <div className="gv-progress-bar-wrap">
-            <div className="gv-progress-bar-fill" style={{ width:`${progress}%` }} />
-          </div>
-          <p className="gv-progress-text">
-            {paidCount} of {totalCount} members have contributed this round
-          </p>
-          {beneficiary && groupData?.status === 1 && (
-            <div className="gv-payout-info">
-              Next payout → {beneficiary.slice(0,6)}...{beneficiary.slice(-4)}
-              {account && beneficiary.toLowerCase() === account.toLowerCase() && " (you!)"}
+            <div className="groupview-stat-item">
+              <p className="groupview-stat-label">Members</p>
+              <p className="groupview-stat-value">{memberCount} / {groupData?.memberLimit}</p>
             </div>
-          )}
+            <div className="groupview-stat-item">
+              <p className="groupview-stat-label">Cycle</p>
+              <p className="groupview-stat-value">{currentCycle} of {groupData?.memberLimit}</p>
+            </div>
+          </div>
+
+          {/* Progress Bar Section */}
+          <div className="groupview-progress-section">
+            <div className="groupview-progress-header">
+              <span className="groupview-progress-title">Contribution Progress</span>
+              <span className="groupview-progress-percent">{progress}% Completed</span>
+            </div>
+            <div className="groupview-progress-bar">
+              <div className="groupview-progress-fill" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
         </div>
 
-         {/* Members */}
-         <div className="gv-section">
-           <h2 className="gv-section-heading">
-             Members
-             <span style={{ fontSize:13, fontWeight:400, color:"#64748B", marginLeft:8 }}>
-               {memberCount} / {groupData?.memberLimit}
-             </span>
-           </h2>
-            <div className="gv-members-list">
-              {members.length === 0 ? (
-                <p style={{ fontSize:13, color:"#64748B" }}>No members yet.</p>
-              ) : (
-                memberDetails.length > 0 ? (
+        {/* Animated Kente Divider */}
+        <div className="groupview-kente-divider" />
+
+        <div className="groupview-content-grid">
+          {/* Left Column: Contribution Ledger */}
+          <div className="groupview-ledger-column">
+            <div className="groupview-ledger-header">
+              <h2 className="groupview-ledger-title">Contribution Ledger</h2>
+              <span className="groupview-ledger-subtitle">Round {currentCycle} Participants</span>
+            </div>
+            <div className="groupview-members-card">
+              <div className="groupview-members-list">
+                {memberDetails.length > 0 ? (
                   memberDetails.map((member, i) => (
                     <MemberRow
                       key={member.address}
@@ -587,348 +604,270 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
                       name={member.name}
                       reputation={member.reputation}
                       index={i}
+                      contributionAmount={groupData?.contributionAmount}
                     />
                   ))
                 ) : (
-                  members.map((addr, i) => (
-                    <MemberRow
-                      key={addr}
-                      address={addr}
-                      account={account}
-                      hasPaid={paidStatus[i]}
-                      index={i}
-                    />
-                  ))
-                )
-              )}
+                  <p className="groupview-empty-message">No members yet.</p>
+                )}
+              </div>
             </div>
           </div>
 
-         {/* Payout History & Payment Schedule */}
-         {(isMember || isLeader) && (
-           <div className="gv-section">
-             <h2 className="gv-section-heading">Payout History & Schedule</h2>
-             
-             {/* Upcoming Payment Deadline */}
-             {upcomingDeadline && groupData?.status === 1 && (
-               <div style={{
-                 padding: "16px",
-                 background: "#FEF3C7",
-                 border: "1px solid #FDE68A",
-                 borderRadius: "8px",
-                 marginBottom: "16px"
-               }}>
-                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                   <span style={{ fontSize: "18px" }}>📅</span>
-                   <strong style={{ fontSize: "14px", color: "#92400E" }}>Next Payment Deadline</strong>
-                 </div>
-                 <p style={{ margin: "4px 0 0 26px", fontSize: "13px", color: "#78350F" }}>
-                   {upcomingDeadline.toLocaleDateString('en-GB', { 
-                     weekday: 'long', 
-                     year: 'numeric', 
-                     month: 'long', 
-                     day: 'numeric' 
-                   })}
-                   {" at "}
-                   {upcomingDeadline.toLocaleTimeString('en-GB', { 
-                     hour: '2-digit', 
-                     minute: '2-digit' 
-                   })}
-                 </p>
-               </div>
-             )}
-             
-             {/* Payout History Table */}
-             {payoutHistory.length > 0 ? (
-               <div style={{
-                 border: "1px solid #E5E7EB",
-                 borderRadius: "8px",
-                 overflow: "hidden"
-               }}>
-                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                   <thead style={{ background: "#F9FAFB" }}>
-                     <tr>
-                       <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", fontWeight: "600", color: "#6B7280", borderBottom: "1px solid #E5E7EB" }}>
-                         Round
-                       </th>
-                       <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", fontWeight: "600", color: "#6B7280", borderBottom: "1px solid #E5E7EB" }}>
-                         Beneficiary
-                       </th>
-                       <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", fontWeight: "600", color: "#6B7280", borderBottom: "1px solid #E5E7EB" }}>
-                         Amount Paid
-                       </th>
-                       <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", fontWeight: "600", color: "#6B7280", borderBottom: "1px solid #E5E7EB" }}>
-                         Completed On
-                       </th>
-                       <th style={{ padding: "12px 16px", textAlign: "center", fontSize: "12px", fontWeight: "600", color: "#6B7280", borderBottom: "1px solid #E5E7EB" }}>
-                         Status
-                       </th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {payoutHistory.map((payout, idx) => {
-                       const isUserBeneficiary = account && payout.beneficiary.toLowerCase() === account.toLowerCase();
-                       return (
-                         <tr key={idx} style={{
-                           background: isUserBeneficiary ? "#F0FDF4" : "white",
-                           borderBottom: idx < payoutHistory.length - 1 ? "1px solid #E5E7EB" : "none"
-                         }}>
-                           <td style={{ padding: "12px 16px", fontSize: "14px", color: "#0F172A" }}>
-                             Cycle {payout.cycle}
-                           </td>
-                           <td style={{ padding: "12px 16px", fontSize: "13px", color: "#64748B", fontFamily: "monospace" }}>
-                             {payout.beneficiary.slice(0, 6)}...{payout.beneficiary.slice(-4)}
-                             {isUserBeneficiary && (
-                               <span style={{ marginLeft: "8px", fontSize: "12px", color: "#10B981", fontWeight: "600" }}>
-                                 (You!)
-                               </span>
-                             )}
-                           </td>
-                           <td style={{ padding: "12px 16px", fontSize: "14px", color: "#0F172A", fontWeight: "600" }}>
-                             {formatDualCurrency(ethers.utils.formatEther(payout.amount))}
-                           </td>
-                           <td style={{ padding: "12px 16px", fontSize: "13px", color: "#64748B" }}>
-                             {payout.deadline.toLocaleDateString('en-GB', { 
-                               day: '2-digit', 
-                               month: 'short', 
-                               year: 'numeric' 
-                             })}
-                           </td>
-                           <td style={{ padding: "12px 16px", textAlign: "center" }}>
-                             <span style={{
-                               padding: "4px 12px",
-                               background: "#DCFCE7",
-                               color: "#166534",
-                               fontSize: "12px",
-                               fontWeight: "600",
-                               borderRadius: "12px"
-                             }}>
-                               ✓ Paid
-                             </span>
-                           </td>
-                         </tr>
-                       );
-                     })}
-                   </tbody>
-                 </table>
-               </div>
-             ) : (
-               <p style={{ fontSize: "13px", color: "#64748B", textAlign: "center", padding: "20px" }}>
-                 No completed payouts yet. History will appear here once rounds are completed.
-               </p>
-             )}
-           </div>
-         )}
-
-          {/* Contract Transparency */}
-         <div className="gv-section">
-           <details className="gv-contract-details">
-             <summary className="gv-contract-summary">
-               📋 Contract Transparency
-             </summary>
-             <div className="gv-contract-content">
-               <div className="gv-contract-row">
-                 <span>Contract Address</span>
-                 <code>{groupAddress}</code>
-               </div>
-               <div className="gv-contract-row">
-                 <span>Group Type</span>
-                 <code>{groupData?.type || "—"}</code>
-               </div>
-               <div className="gv-contract-row">
-                 <span>Contribution Amount</span>
-                 <code>{formatDualCurrency(ethers.utils.formatEther(groupData?.contributionAmount || "0"))}</code>
-               </div>
-               <div className="gv-contract-row">
-                 <span>Stake Amount</span>
-                 <code>{formatDualCurrency(ethers.utils.formatEther(groupData?.stakeAmount || "0"))}</code>
-               </div>
-               <div className="gv-contract-row">
-                 <span>Penalty Amount</span>
-                 <code>{formatDualCurrency(ethers.utils.formatEther(groupData?.penaltyAmount || "0"))}</code>
-               </div>
-               <div className="gv-contract-row">
-                 <span>Grace Period</span>
-                 <code>{groupData?.gracePeriod || "—"} days</code>
-               </div>
-               <div className="gv-contract-row">
-                 <span>Ejection Threshold</span>
-                 <code>{groupData?.ejectionThreshold || "—"} defaults</code>
-               </div>
-             </div>
-           </details>
-         </div>
-
-         {/* TX status */}
-         {txStatus && (
-           <div className={`gv-tx-banner gv-tx-${txStatus}`}>
-             {txMessage}
-             {txHash && (
-               <div style={{ marginTop: "8px", fontSize: "12px", opacity: 0.9 }}>
-                 <span>Transaction: </span>
-                 <a
-                   href={`https://etherscan.io/tx/${txHash}`}
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   style={{ 
-                     color: "inherit", 
-                     textDecoration: "underline",
-                     fontFamily: "monospace"
-                   }}
-                 >
-                   {txHash.slice(0, 10)}...{txHash.slice(-8)}
-                 </a>
-                 <span style={{ marginLeft: "8px" }}>↗</span>
-               </div>
-             )}
-           </div>
-         )}
-
-          {/* JOIN FORM — for non-members */}
-          {!isMember && !backendUser && txStatus !== "confirmed" && (
-            <div className="gv-join-section">
-              <h3 style={{ marginBottom: "12px", color: "#0F172A" }}>Join this Circle</h3>
-              <p style={{ fontSize: "13px", color: "#64748B" }}>
-                Please sign in to join this circle.
-              </p>
-              <button
-                className="gv-btn-contribute"
-                onClick={() => onNavigate("login")}
-                style={{ marginTop: "12px" }}
-              >
-                Sign In
-              </button>
-            </div>
-          )}
-
-          {/* JOIN CONFIRMATION — for authenticated non-members */}
-          {!isMember && backendUser && txStatus !== "confirmed" && (
-            <div className="gv-join-section">
-              <h3 style={{ marginBottom: "16px", color: "#0F172A" }}>
-                {isLeader ? "Pay Stake to Join Your Circle" : "Join this Circle"}
-              </h3>
-              
-              {/* Confirmation card */}
-              <div style={{ 
-                padding: "16px", 
-                background: "#F0FDF4", 
-                border: "1px solid #DCFCE7",
-                borderRadius: "8px", 
-                marginBottom: "16px"
-              }}>
-                <div style={{ marginBottom: "12px" }}>
-                  <p style={{ fontSize: "12px", color: "#64748B", marginBottom: "4px" }}>Joining as</p>
-                  <p style={{ fontSize: "16px", fontWeight: "600", color: "#0F172A" }}>
-                    {backendUser.fullName}
-                  </p>
+          {/* Right Column: Actions & Details */}
+          <div className="groupview-sidebar-column">
+            {/* Your Position Card */}
+            {isMember && (
+              <div className="groupview-position-card">
+                <h3 className="groupview-card-title">Your Position</h3>
+                <div className="groupview-position-details">
+                  <div className="groupview-position-row">
+                    <span className="groupview-position-label">Next Payment Due</span>
+                    <span className="groupview-position-value">
+                      {upcomingDeadline 
+                        ? upcomingDeadline.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : "Not set"}
+                    </span>
+                  </div>
+                  <div className="groupview-position-row">
+                    <span className="groupview-position-label">Amount Due</span>
+                    <span className="groupview-position-value">{formatDualCurrency(contribETH)}</span>
+                  </div>
+                  <div className="groupview-position-row">
+                    <span className="groupview-position-label">Payout Position</span>
+                    <span className="groupview-position-value">
+                      {beneficiary && account && beneficiary.toLowerCase() === account.toLowerCase() 
+                        ? `${currentCycle} of ${groupData?.memberLimit} (Current!)`
+                        : `${currentCycle} of ${groupData?.memberLimit}`}
+                    </span>
+                  </div>
                 </div>
                 
-                <div>
-                  <p style={{ fontSize: "12px", color: "#64748B", marginBottom: "4px" }}>Stake required</p>
-                  <p style={{ fontSize: "16px", fontWeight: "600", color: "#0F172A" }}>
-                    {formatDualCurrency(stakeETH)}
-                  </p>
+                {/* Contribute Button */}
+                {groupData?.status === 1 && (
+                  <button
+                    className="groupview-contribute-btn"
+                    onClick={handleContribute}
+                    disabled={contributing || alreadyPaid}
+                  >
+                    <span className="material-symbols-outlined">payments</span>
+                    {alreadyPaid
+                      ? "Already Contributed"
+                      : contributing
+                        ? "Processing..."
+                        : "Contribute Now"}
+                  </button>
+                )}
+
+                {/* Flag Default Button - Leader Only */}
+                {isLeader && groupData?.status === 1 && (
+                  <button
+                    className="groupview-flag-btn"
+                    onClick={() => setShowFlagModal(true)}
+                    disabled={flagging}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>flag</span>
+                    Default Member (Leader Only)
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Join Card - Non-members */}
+            {!isMember && (
+              <div className="groupview-position-card">
+                <h3 className="groupview-card-title">Join this Circle</h3>
+                {!backendUser ? (
+                  <div>
+                    <p className="groupview-join-text">Please sign in to join this circle.</p>
+                    <button
+                      className="groupview-contribute-btn"
+                      onClick={() => onNavigate("login")}
+                      style={{ marginTop: "16px" }}
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="groupview-position-details" style={{ marginBottom: "16px" }}>
+                      <div className="groupview-position-row">
+                        <span className="groupview-position-label">Joining as</span>
+                        <span className="groupview-position-value">{backendUser.fullName}</span>
+                      </div>
+                      <div className="groupview-position-row">
+                        <span className="groupview-position-label">Stake Required</span>
+                        <span className="groupview-position-value">{formatDualCurrency(stakeETH)}</span>
+                      </div>
+                    </div>
+                    <button
+                      className="groupview-contribute-btn"
+                      onClick={handleJoin}
+                      disabled={joining}
+                    >
+                      {joining ? "Processing..." : "Confirm & Join"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Trust Score Card */}
+            {isMember && (
+              <div className="groupview-trust-card">
+                <div className="groupview-trust-header">
+                  <div className="groupview-trust-icon">
+                    <span className="material-symbols-outlined">trending_up</span>
+                  </div>
+                  <span className="groupview-trust-label">Trust Score</span>
                 </div>
+                <p className="groupview-trust-score">
+                  {memberDetails.find(m => m.address.toLowerCase() === account?.toLowerCase())?.reputation || 0}
+                </p>
+                <p className="groupview-trust-text">Excellent community standing</p>
               </div>
+            )}
 
-              {/* Action buttons */}
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  className="gv-btn-join"
-                  onClick={handleJoin}
-                  disabled={joining}
-                  style={{ flex: 1, background: "#10B981", color: "white" }}
-                >
-                  {joining ? "Processing..." : "Confirm & Join"}
-                </button>
-                <button
-                  className="gv-btn-contribute"
-                  onClick={() => onNavigate("dashboard")}
-                  disabled={joining}
-                  style={{ flex: 1, background: "transparent", color: "#0F172A", border: "1px solid #E5E7EB" }}
-                >
-                  Cancel
-                </button>
-              </div>
+            {/* The Modern Custodian Card */}
+            <div className="groupview-custodian-card">
+              <p className="groupview-custodian-title">The Modern Custodian</p>
+              <p className="groupview-custodian-text">
+                Your contributions are secured via decentralized smart contracts, ensuring peer-to-peer transparency.
+              </p>
             </div>
-          )}
-
-         {/* Actions */}
-        <div className="gv-actions">
-          {/* Contribute button */}
-          {isMember && groupData?.status === 1 && (
-            <button
-              className="gv-btn-contribute"
-              onClick={handleContribute}
-              disabled={contributing || alreadyPaid}
-            >
-              {alreadyPaid
-                ? "✓ Already contributed this round"
-                : contributing
-                  ? "Confirming..."
-                  : `Pay ${contribETH} ETH`}
-            </button>
-          )}
-
-          {/* Flag default — leader only */}
-          {isLeader && groupData?.status === 1 && (
-            <button
-              className="gv-btn-flag"
-              onClick={() => setShowFlagModal(true)}
-              disabled={flagging}
-            >
-              {flagging ? "Flagging..." : "Flag Defaulter"}
-            </button>
-          )}
+          </div>
         </div>
 
+        {/* Transaction Status */}
+        {txStatus && (
+          <div className={`groupview-tx-banner groupview-tx-${txStatus}`}>
+            {txMessage}
+            {txHash && (
+              <div style={{ marginTop: "8px", fontSize: "12px", opacity: 0.9 }}>
+                <span>Transaction: </span>
+                <a
+                  href={`https://etherscan.io/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ 
+                    color: "inherit", 
+                    textDecoration: "underline",
+                    fontFamily: "monospace"
+                  }}
+                >
+                  {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                </a>
+                <span style={{ marginLeft: "8px" }}>↗</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Payout History - Collapsible Section */}
+        {(isMember || isLeader) && payoutHistory.length > 0 && (
+          <details className="groupview-history-details">
+            <summary className="groupview-history-summary">
+              📋 Payout History ({payoutHistory.length} completed rounds)
+            </summary>
+            <div className="groupview-history-content">
+              <div className="groupview-history-table">
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th>Round</th>
+                      <th>Beneficiary</th>
+                      <th>Amount Paid</th>
+                      <th>Completed On</th>
+                      <th style={{ textAlign: "center" }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payoutHistory.map((payout, idx) => {
+                      const isUserBeneficiary = account && payout.beneficiary.toLowerCase() === account.toLowerCase();
+                      return (
+                        <tr key={idx} className={isUserBeneficiary ? "groupview-history-row-highlight" : ""}>
+                          <td>Cycle {payout.cycle}</td>
+                          <td style={{ fontFamily: "monospace", fontSize: "13px" }}>
+                            {payout.beneficiary.slice(0, 6)}...{payout.beneficiary.slice(-4)}
+                            {isUserBeneficiary && (
+                              <span style={{ marginLeft: "8px", color: "#10B981", fontWeight: "600" }}>
+                                (You!)
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ fontWeight: "600" }}>
+                            {formatDualCurrency(ethers.utils.formatEther(payout.amount))}
+                          </td>
+                          <td>
+                            {payout.deadline.toLocaleDateString('en-GB', { 
+                              day: '2-digit', 
+                              month: 'short', 
+                              year: 'numeric' 
+                            })}
+                          </td>
+                          <td style={{ textAlign: "center" }}>
+                            <span className="groupview-badge-paid">✓ Paid</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </details>
+        )}
+
+        {/* Contract Transparency */}
+        <details className="groupview-contract-details">
+          <summary className="groupview-contract-summary">
+            📋 Contract Transparency
+          </summary>
+          <div className="groupview-contract-content">
+            <div className="groupview-contract-row">
+              <span>Contract Address</span>
+              <code>{groupAddress}</code>
+            </div>
+            <div className="groupview-contract-row">
+              <span>Group Type</span>
+              <code>{groupData?.type || "—"}</code>
+            </div>
+            <div className="groupview-contract-row">
+              <span>Contribution Amount</span>
+              <code>{formatDualCurrency(contribETH)}</code>
+            </div>
+            <div className="groupview-contract-row">
+              <span>Stake Amount</span>
+              <code>{formatDualCurrency(stakeETH)}</code>
+            </div>
+            <div className="groupview-contract-row">
+              <span>Penalty Amount</span>
+              <code>{formatDualCurrency(ethers.utils.formatEther(groupData?.penaltyAmount || "0"))}</code>
+            </div>
+            <div className="groupview-contract-row">
+              <span>Grace Period</span>
+              <code>{groupData?.gracePeriod || "—"} days</code>
+            </div>
+            <div className="groupview-contract-row">
+              <span>Ejection Threshold</span>
+              <code>{groupData?.ejectionThreshold || "—"} defaults</code>
+            </div>
+          </div>
+        </details>
       </main>
-      
+
       {/* Flag Defaulter Modal */}
       {showFlagModal && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: "white",
-            borderRadius: "12px",
-            padding: "24px",
-            maxWidth: "500px",
-            width: "90%",
-            maxHeight: "80vh",
-            overflow: "auto"
-          }}>
-            <h3 style={{ marginBottom: "16px", color: "#0F172A" }}>Flag Defaulter</h3>
+        <div className="groupview-modal-overlay">
+          <div className="groupview-modal">
+            <h3 className="groupview-modal-title">Flag Defaulter</h3>
             
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ 
-                display: "block", 
-                fontSize: "13px", 
-                fontWeight: "600",
-                color: "#0F172A",
-                marginBottom: "8px" 
-              }}>
-                Select Member
-              </label>
+            <div className="groupview-modal-field">
+              <label className="groupview-modal-label">Select Member</label>
               <select
                 value={selectedDefaulter}
                 onChange={(e) => setSelectedDefaulter(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: "6px",
-                  fontSize: "14px"
-                }}
+                className="groupview-modal-select"
               >
                 <option value="">-- Select a member --</option>
                 {memberDetails
@@ -942,62 +881,28 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
               </select>
             </div>
             
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ 
-                display: "block", 
-                fontSize: "13px", 
-                fontWeight: "600",
-                color: "#0F172A",
-                marginBottom: "8px" 
-              }}>
-                Complaint Details
-              </label>
+            <div className="groupview-modal-field">
+              <label className="groupview-modal-label">Complaint Details</label>
               <textarea
                 value={complaintText}
                 onChange={(e) => setComplaintText(e.target.value)}
-                placeholder="Describe the reason for flagging this member (e.g., failed to pay for 2 cycles, unresponsive to reminders, etc.)"
+                placeholder="Describe the reason for flagging this member..."
                 rows={5}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  fontFamily: "inherit",
-                  resize: "vertical"
-                }}
+                className="groupview-modal-textarea"
               />
             </div>
             
             {txMessage && (
-              <div style={{
-                padding: "12px",
-                background: txStatus === "error" ? "#FEE2E2" : "#F0FDF4",
-                border: `1px solid ${txStatus === "error" ? "#FECACA" : "#DCFCE7"}`,
-                borderRadius: "6px",
-                marginBottom: "16px",
-                fontSize: "13px",
-                color: txStatus === "error" ? "#991B1B" : "#166534"
-              }}>
+              <div className={`groupview-modal-message ${txStatus === "error" ? "groupview-modal-error" : "groupview-modal-success"}`}>
                 {txMessage}
               </div>
             )}
             
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div className="groupview-modal-actions">
               <button
                 onClick={handleFlagDefault}
                 disabled={flagging || !selectedDefaulter || !complaintText.trim()}
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                  background: flagging || !selectedDefaulter || !complaintText.trim() ? "#E5E7EB" : "#EF4444",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  cursor: flagging || !selectedDefaulter || !complaintText.trim() ? "not-allowed" : "pointer"
-                }}
+                className="groupview-modal-btn groupview-modal-btn-danger"
               >
                 {flagging ? "Processing..." : "Submit Complaint"}
               </button>
@@ -1009,17 +914,7 @@ export default function GroupView({ account, backendUser, groupAddress, onNaviga
                   setTxMessage("");
                 }}
                 disabled={flagging}
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                  background: "transparent",
-                  color: "#0F172A",
-                  border: "1px solid #E5E7EB",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  cursor: flagging ? "not-allowed" : "pointer"
-                }}
+                className="groupview-modal-btn groupview-modal-btn-cancel"
               >
                 Cancel
               </button>

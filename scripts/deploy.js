@@ -14,6 +14,12 @@ async function main() {
   const factory = await Factory.deploy(await reputation.getAddress());
   await factory.waitForDeployment();
   console.log("ChilimbaFactory deployed to:", await factory.getAddress());
+  
+  // Authorize the factory to call reputation (so it can authorize groups it creates)
+  console.log("\n🔑 Authorizing factory to manage reputation...");
+  const authTx = await reputation.authorizeCaller(await factory.getAddress());
+  await authTx.wait();
+  console.log("✓ Factory authorized - it will auto-authorize all groups it creates");
 
   const addresses = {
     reputation: await reputation.getAddress(),
@@ -27,8 +33,11 @@ async function main() {
     JSON.stringify(addresses, null, 2)
   );
 
-  console.log("✅ Addresses saved!");
+  console.log("\n✅ Deployment complete!");
   console.log(addresses);
+  console.log("\n📝 Next steps:");
+  console.log("1. Groups created by this factory will automatically be authorized");
+  console.log("2. Run scripts/authorize-groups.js if you need to authorize existing groups");
 }
 
 main().catch((error) => {

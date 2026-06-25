@@ -1,0 +1,499 @@
+/* ============================================
+   NOTIFICATIONS PAGE STYLES
+   ============================================ */
+
+.notifications-page {
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+  padding-bottom: 3rem;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.notifications-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: var(--color-text-secondary);
+}
+
+.back-btn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.back-btn .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.notifications-title {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 0.25rem;
+}
+
+.unread-badge {
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-secondary);
+  padding: 0.25rem 0.625rem;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.mark-all-read-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: none;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 8px;
+  font-family: var(--font-label);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mark-all-read-btn:hover {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary-main);
+  color: var(--color-primary-main);
+}
+
+.mark-all-read-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* ============================================
+   TABS
+   ============================================ */
+
+.notifications-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: var(--color-bg-primary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.notifications-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.notifications-tabs::-webkit-scrollbar-thumb {
+  background: var(--color-border-subtle);
+  border-radius: 4px;
+}
+
+.notif-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 24px;
+  font-family: var(--font-label);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.notif-tab .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.notif-tab:hover {
+  border-color: var(--color-primary-main);
+  color: var(--color-primary-main);
+  background: var(--color-primary-light);
+}
+
+.notif-tab.active {
+  background: var(--color-primary-main);
+  border-color: var(--color-primary-main);
+  color: white;
+}
+
+.tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 0.125rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.25rem;
+}
+
+.notif-tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================
+   NOTIFICATIONS CONTAINER
+   ============================================ */
+
+.notifications-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1rem;
+  color: var(--color-text-tertiary);
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--color-border-subtle);
+  border-top-color: var(--color-primary-main);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--color-text-tertiary);
+}
+
+.empty-state .material-symbols-outlined {
+  font-size: 80px;
+  opacity: 0.3;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 0.5rem;
+}
+
+.empty-state p {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* ============================================
+   NOTIFICATIONS LIST
+   ============================================ */
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notification-item {
+  display: flex;
+  align-items: start;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--color-surface-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.notification-item:hover {
+  border-color: var(--color-primary-main);
+  box-shadow: 0 2px 12px rgba(0, 108, 73, 0.08);
+}
+
+.notification-item.unread {
+  background: linear-gradient(
+    to right,
+    rgba(0, 108, 73, 0.03) 0%,
+    var(--color-surface-primary) 100%
+  );
+  border-left: 3px solid var(--color-primary-main);
+}
+
+.notification-item.read {
+  opacity: 0.7;
+}
+
+.notification-item.read:hover {
+  opacity: 1;
+}
+
+/* ============================================
+   NOTIFICATION ICON
+   ============================================ */
+
+.notification-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.notification-item.success .notification-icon {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.notification-item.warning .notification-icon {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.notification-item.info .notification-icon {
+  background: rgba(70, 72, 212, 0.1);
+  color: var(--color-secondary-main);
+}
+
+.notification-item.primary .notification-icon {
+  background: rgba(0, 108, 73, 0.1);
+  color: var(--color-primary-main);
+}
+
+.notification-icon .material-symbols-outlined {
+  font-size: 24px;
+}
+
+/* ============================================
+   NOTIFICATION CONTENT
+   ============================================ */
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.notification-title {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.notification-time {
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.notification-message {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin: 0 0 0.75rem;
+}
+
+.notification-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  background: none;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  font-family: var(--font-label);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-primary-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notification-action:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-main);
+}
+
+.notification-action .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* ============================================
+   UNREAD INDICATOR
+   ============================================ */
+
+.unread-indicator {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-primary-main);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .notifications-header {
+    padding: 1rem;
+  }
+
+  .mark-all-read-btn span:not(.material-symbols-outlined) {
+    display: none;
+  }
+
+  .mark-all-read-btn {
+    padding: 0.625rem;
+  }
+
+  .notifications-tabs {
+    padding: 1rem;
+  }
+
+  .notifications-container {
+    padding: 1rem;
+  }
+
+  .notification-item {
+    padding: 1rem;
+  }
+
+  .notification-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .notification-icon .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  .notification-title {
+    font-size: 0.9375rem;
+  }
+
+  .notification-message {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .notifications-title {
+    font-size: 1.25rem;
+  }
+
+  .header-left {
+    gap: 0.75rem;
+  }
+
+  .notification-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .notification-time {
+    align-self: flex-start;
+  }
+
+  .tab-label {
+    display: none;
+  }
+
+  .notif-tab {
+    padding: 0.625rem;
+  }
+
+  .notif-tab .material-symbols-outlined {
+    margin: 0;
+  }
+}

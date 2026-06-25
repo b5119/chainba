@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import BASE_URL from "../api";
 import "./Admin.css";
 
-const ADMIN_KEY = "chainba2026";
+// Admin access is authorized server-side from the logged-in user's JWT
+// (requires an account with isAdmin=true). No shared secret in the client.
 
 // ─── Logo mark ────────────────────────────────────────────────────────────
 function LogoMark() {
@@ -95,16 +96,21 @@ export default function Admin({ onNavigate, onLogout }) {
   const [search,  setSearch]  = useState("");
   const [selected,setSelected]= useState(null);
   const [tab,     setTab]     = useState("users"); // "users" | "system"
+  const [accessError, setAccessError] = useState("");
 
   const loadUsers = async () => {
     setLoading(true);
+    setAccessError("");
     try {
+      const token = localStorage.getItem("chainba_token");
       const res = await fetch(BASE_URL + "/api/admin/users", {
-        headers: { "x-admin-key": ADMIN_KEY }
+        headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users);
+      } else if (res.status === 401 || res.status === 403) {
+        setAccessError("You do not have admin access.");
       }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -180,7 +186,9 @@ export default function Admin({ onNavigate, onLogout }) {
               </div>
             </div>
 
-            {loading ? (
+            {accessError ? (
+              <div style={{ textAlign:"center", padding:"3rem", color:"#DC2626" }}>{accessError}</div>
+            ) : loading ? (
               <div style={{ textAlign:"center", padding:"3rem", color:"#64748B" }}>Loading users...</div>
             ) : filtered.length === 0 ? (
               <div style={{ textAlign:"center", padding:"3rem", color:"#64748B" }}>

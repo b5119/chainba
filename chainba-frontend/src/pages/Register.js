@@ -7,6 +7,8 @@ export default function Register({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handle = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -30,7 +32,8 @@ export default function Register({ onLogin }) {
     return errs;
   };
 
-  const submit = async () => {
+  const submit = async (e) => {
+    e.preventDefault();
     setError("");
     const errs = validate();
     if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
@@ -53,114 +56,245 @@ export default function Register({ onLogin }) {
     }
   };
 
-  const fields = [
-    { label: "Full Name", name: "fullName", type: "text", hint: "Enter your full name as on NRC" },
-    { label: "Phone Number", name: "phone", type: "text", hint: "Zambian number e.g. 0971234567" },
-    { label: "NRC Number", name: "nrcNumber", type: "text", hint: "Format: 123456/78/1" },
-    { label: "Password", name: "password", type: "password", hint: "At least 6 characters" },
-    { label: "Confirm Password", name: "confirm", type: "password", hint: "Repeat your password" }
-  ];
-
   return (
-    <div className="registerSplit">
-      <aside className="registerLeft" aria-label="ChainBa introduction">
-        <div className="registerLeftInner">
-          <div className="registerBrand" aria-label="ChainBa">
-            <span className="registerLogo" aria-hidden="true">
-              <span className="registerDiamond registerDiamondA" />
-              <span className="registerDiamond registerDiamondB" />
-            </span>
-            <span className="registerBrandName">ChainBa</span>
+    <main className="register-page">
+      {/* Left Panel: Brand Identity (40%) */}
+      <section className="register-left-panel">
+        {/* Background Image with Overlay */}
+        <div className="register-background">
+          <img 
+            className="register-background-image" 
+            alt="Abstract deep emerald and navy architectural forms" 
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKhgcSi7T4pqAyjaYePEHvU1IcNvw4cIf8T7ObSEVHmKGE8dcun1wJbHr-7jO2-dMrLNZqcBrEAr8CVpyfWruju8j6WgxFgdomdpKCbUDM7UBXbrekZiNXDlc5sRFqOS-VE9WaURZxzt6w1wNjSQokmpvdDXHGCTRlFoyNmC38ECu0Dq8Ra2MpoVWDwozm08zLQV6Dl8FBHSdb6AiD9i1wwtkGzamyvxfGyHXzbxXr-CikWT0UlHKXrFJLNRVubAC1tstlI57udm7N"
+          />
+          <div className="register-background-overlay"></div>
+        </div>
+
+        {/* Content */}
+        <div className="register-left-content">
+          <div className="register-brand">
+            <span className="material-symbols-outlined register-brand-icon">account_balance</span>
+            <h1 className="register-brand-name font-headline">ChainBa</h1>
           </div>
-
-          <div className="registerLeftContent">
-            <h1 className="registerHeadline">Join your first circle.</h1>
-            <p className="registerSubtext">
-              Community savings on the blockchain. Automatic. Transparent. Trustless.
+          
+          <div className="register-hero">
+            <h2 className="register-headline font-headline">
+              The Modern <br /><span className="register-headline-accent">Custodian.</span>
+            </h2>
+            <p className="register-subheadline font-body">
+              Redefining the heritage of community finance through decentralized transparency and institutional-grade security.
             </p>
-
-            <div className="registerTrustBadge" role="note">
-              <span className="registerCheck" aria-hidden="true">✓</span>
-              <span>No wallet needed — we create one for you</span>
-            </div>
           </div>
         </div>
-      </aside>
 
-      <main className="registerRight" aria-label="Create account">
-        <div className="registerFormWrap">
-          <div className="registerFormHeader">
-            <h2 className="registerFormTitle">Create your account</h2>
+        {/* Trust Badge & Kente */}
+        <div className="register-left-footer">
+          <div className="register-trust-badge">
+            <div className="register-trust-icon">
+              <span className="material-symbols-outlined">verified_user</span>
+            </div>
+            <div>
+              <p className="register-trust-title">Regulated Security</p>
+              <p className="register-trust-subtitle">Certified decentralized protocols</p>
+            </div>
+          </div>
+          <div className="kente-divider"></div>
+        </div>
+      </section>
+
+      {/* Right Panel: Form (60%) */}
+      <section className="register-right-panel">
+        <div className="register-form-container">
+          {/* Header */}
+          <div className="register-header">
+            <h3 className="register-form-title font-headline">Create Account</h3>
+            <p className="register-form-subtitle font-body">
+              Begin your journey with the elite circle of decentralized wealth management.
+            </p>
           </div>
 
+          {/* Global Error */}
           {error && (
-            <div className="registerGlobalError" role="alert">
+            <div className="register-global-error" role="alert">
               {error}
             </div>
           )}
 
-          <div className="registerForm">
-            {fields.map((f) => {
-              const hint =
-                f.name === "nrcNumber" ? "Format: 123456/78/9" : f.hint;
-              const hasError = Boolean(fieldErrors[f.name]);
+          {/* Registration Form */}
+          <form className="register-form" onSubmit={submit}>
+            {/* Full Name */}
+            <div className="register-field">
+              <label className="register-label font-label" htmlFor="register-fullName">
+                Full Name
+              </label>
+              <input
+                id="register-fullName"
+                className={`register-input font-body ${fieldErrors.fullName ? "register-input-error" : ""}`}
+                name="fullName"
+                type="text"
+                value={form.fullName}
+                onChange={handle}
+                placeholder="Enter your full legal name"
+                autoComplete="name"
+              />
+              {fieldErrors.fullName && (
+                <p className="register-field-error font-body" role="alert">
+                  {fieldErrors.fullName}
+                </p>
+              )}
+            </div>
 
-              return (
-                <div key={f.name} className="registerField">
-                  <label className="registerLabel" htmlFor={`register-${f.name}`}>
-                    {f.label}
-                  </label>
-                  <input
-                    id={`register-${f.name}`}
-                    className={`registerInput ${hasError ? "registerInputError" : ""}`}
-                    name={f.name}
-                    type={f.type}
-                    value={form[f.name]}
-                    onChange={handle}
-                    autoComplete={
-                      f.name === "password"
-                        ? "new-password"
-                        : f.name === "confirm"
-                          ? "new-password"
-                          : f.name === "phone"
-                            ? "tel"
-                            : "name"
-                    }
-                    inputMode={f.name === "phone" ? "tel" : undefined}
-                  />
+            <div className="register-field-row">
+              {/* Phone Number */}
+              <div className="register-field">
+                <label className="register-label font-label" htmlFor="register-phone">
+                  Phone Number
+                </label>
+                <input
+                  id="register-phone"
+                  className={`register-input font-body ${fieldErrors.phone ? "register-input-error" : ""}`}
+                  name="phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={handle}
+                  placeholder="+260 9xx xxx xxx"
+                  autoComplete="tel"
+                  inputMode="tel"
+                />
+                {fieldErrors.phone && (
+                  <p className="register-field-error font-body" role="alert">
+                    {fieldErrors.phone}
+                  </p>
+                )}
+              </div>
 
-                  {hasError ? (
-                    <p className="registerFieldError" role="alert">
-                      {fieldErrors[f.name]}
-                    </p>
-                  ) : (
-                    <p className="registerHint">{hint}</p>
-                  )}
-                </div>
-              );
-            })}
+              {/* NRC Number */}
+              <div className="register-field">
+                <label className="register-label font-label" htmlFor="register-nrcNumber">
+                  NRC Number
+                </label>
+                <input
+                  id="register-nrcNumber"
+                  className={`register-input font-body ${fieldErrors.nrcNumber ? "register-input-error" : ""}`}
+                  name="nrcNumber"
+                  type="text"
+                  value={form.nrcNumber}
+                  onChange={handle}
+                  placeholder="000000/00/1"
+                />
+                {fieldErrors.nrcNumber && (
+                  <p className="register-field-error font-body" role="alert">
+                    {fieldErrors.nrcNumber}
+                  </p>
+                )}
+              </div>
+            </div>
 
-            <button
-              className="registerSubmit"
-              onClick={submit}
-              disabled={loading}
-            >
-              {loading ? "Creating account..." : "Create account"}
-            </button>
+            {/* Password */}
+            <div className="register-field">
+              <label className="register-label font-label" htmlFor="register-password">
+                Password
+              </label>
+              <div className="register-input-wrapper">
+                <input
+                  id="register-password"
+                  className={`register-input font-body ${fieldErrors.password ? "register-input-error" : ""}`}
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handle}
+                  placeholder="••••••••••••"
+                  autoComplete="new-password"
+                />
+                <button
+                  className="register-toggle-password"
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <span className="material-symbols-outlined">
+                    {showPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
+              {fieldErrors.password && (
+                <p className="register-field-error font-body" role="alert">
+                  {fieldErrors.password}
+                </p>
+              )}
+            </div>
 
-            <div className="registerFooter">
-              <span>Already have an account? </span>
+            {/* Confirm Password */}
+            <div className="register-field">
+              <label className="register-label font-label" htmlFor="register-confirm">
+                Confirm Password
+              </label>
+              <div className="register-input-wrapper">
+                <input
+                  id="register-confirm"
+                  className={`register-input font-body ${fieldErrors.confirm ? "register-input-error" : ""}`}
+                  name="confirm"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={form.confirm}
+                  onChange={handle}
+                  placeholder="••••••••••••"
+                  autoComplete="new-password"
+                />
+                <button
+                  className="register-toggle-password"
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  <span className="material-symbols-outlined">
+                    {showConfirmPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
+              {fieldErrors.confirm && (
+                <p className="register-field-error font-body" role="alert">
+                  {fieldErrors.confirm}
+                </p>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <div className="register-submit-wrapper">
               <button
-                type="button"
-                className="registerSignIn"
-                onClick={() => onLogin(null, "login")}
+                className="register-submit font-label"
+                type="submit"
+                disabled={loading}
               >
-                Sign in
+                {loading ? "Creating account..." : "Register Account"}
+                <span className="material-symbols-outlined register-submit-arrow">arrow_forward</span>
               </button>
             </div>
+          </form>
+
+          {/* Footer Links */}
+          <div className="register-footer">
+            <p className="register-footer-text font-body">
+              Already have an account?
+              <button
+                type="button"
+                className="register-login-link font-body"
+                onClick={() => onLogin(null, "login")}
+              >
+                Log in
+              </button>
+            </p>
+            <div className="register-footer-links">
+              <a className="register-footer-link font-body" href="#help">Help Center</a>
+              <a className="register-footer-link font-body" href="#privacy">Privacy Policy</a>
+            </div>
+          </div>
+
+          {/* Decorative Element */}
+          <div className="register-decorative">
+            <div className="kente-divider register-decorative-divider"></div>
           </div>
         </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }
